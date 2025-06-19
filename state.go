@@ -117,6 +117,16 @@ func (s *NiriState) Update(event Event) {
 				s.needsRedraw = true
 			}
 		}
+	case *WindowUrgencyChanged:
+		window := s.Windows[event.Id]
+		if window != nil {
+			window.IsUrgent = event.Urgent
+		}
+	case *WorkspaceUrgencyChanged:
+		workspace := s.Workspaces[event.Id]
+		if workspace != nil {
+			workspace.IsUrgent = event.Urgent
+		}
 	default:
 		// fmt.Fprintf(os.Stderr, "Ignoring event: %T\n", event)
 		return
@@ -127,15 +137,18 @@ func (s *NiriState) Update(event Event) {
 
 const unfocused = '⋅'
 const focused = '⊙'
+const urgentBegin = "<span color=\"#fb2c36\">"
+const urgentEnd = "</span>"
 
 func (s *NiriState) Redraw() {
 	if !s.needsRedraw {
 		return
 	}
 
-	windowsOnCurrentWorkspace := make([]*Window, 0)
+	windowsOnCurrentWorkspace := make([]*Window, 0, len(s.Windows))
 	focusedColumn := -1
 	maxColumn := -1
+	urgentColumns := make([]bool, len(s.Windows))
 	for _, window := range s.Windows {
 		if window.WorkspaceId != nil && *window.WorkspaceId == s.CurrentWorkspaceId {
 			windowsOnCurrentWorkspace = append(windowsOnCurrentWorkspace, window)
@@ -145,6 +158,9 @@ func (s *NiriState) Redraw() {
 			}
 			if col > maxColumn {
 				maxColumn = col
+			}
+			if window.IsUrgent {
+				urgentColumns[col] = true
 			}
 		}
 	}
@@ -160,10 +176,16 @@ func (s *NiriState) Redraw() {
 
 	var output strings.Builder
 	for i := 0; i <= int(maxColumn); i++ {
+		if i < len(urgentColumns) && urgentColumns[i] {
+			output.WriteString(urgentBegin)
+		}
 		if focusedColumn == i {
 			output.WriteRune(focused)
 		} else {
 			output.WriteRune(unfocused)
+		}
+		if i < len(urgentColumns) && urgentColumns[i] {
+			output.WriteString(urgentEnd)
 		}
 	}
 	write(output.String())
