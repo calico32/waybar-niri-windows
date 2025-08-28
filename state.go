@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"os"
+	"slices"
 	"strings"
 )
 
@@ -135,8 +136,10 @@ func (s *NiriState) Update(event Event) {
 	// fmt.Fprintf(os.Stderr, "Processed event: %T\n", event)
 }
 
-const unfocused = '⋅'
-const focused = '⊙'
+const unfocusedSymbol = '⋅'
+const focusedSymbol = '⊙'
+const unfocusedFloatingSymbol = '∗'
+const focusedFloatingSymbol = '⊛'
 const urgentBegin = "<span color=\"#fb2c36\">"
 const urgentEnd = "</span>"
 
@@ -145,34 +148,38 @@ func (s *NiriState) Redraw() {
 		return
 	}
 
-	windowsOnCurrentWorkspace := make([]*Window, 0, len(s.Windows))
 	focusedColumn := -1
 	maxColumn := -1
 	urgentColumns := make([]bool, len(s.Windows))
+	focusedFloating := uint64(0)
+	floatingWindows := make([]*Window, 0, len(s.Windows))
 	for _, window := range s.Windows {
 		if window.WorkspaceId != nil && *window.WorkspaceId == s.CurrentWorkspaceId {
-			windowsOnCurrentWorkspace = append(windowsOnCurrentWorkspace, window)
-			col := int(window.Location.TilePosInScrollingLayout.X)
-			if window.IsFocused {
-				focusedColumn = col
-			}
-			if col > maxColumn {
-				maxColumn = col
-			}
-			if window.IsUrgent {
-				urgentColumns[col] = true
+			location := window.Location.TilePosInScrollingLayout
+			if location != nil {
+				col := int(location.X)
+				if window.IsFocused {
+					focusedColumn = col
+				}
+				if col > maxColumn {
+					maxColumn = col
+				}
+				if window.IsUrgent {
+					urgentColumns[col] = true
+				}
+			} else if window.IsFloating {
+				if window.IsFocused {
+					focusedFloating = window.Id
+				}
+				floatingWindows = append(floatingWindows, window)
 			}
 		}
 	}
 
-	// sort windows by their tile position in the scrolling layout
-	// slices.SortFunc(windowsOnCurrentWorkspace, func(a, b *Window) int {
-	// 	return int(a.Location.TilePosInScrollingLayout.X) - int(b.Location.TilePosInScrollingLayout.X)
-	// })
-	// fmt.Println("Collected windows:")
-	// for _, window := range windowsOnCurrentWorkspace {
-	// 	fmt.Printf("  %s\n", window)
-	// }
+	// sort floating windows left-to-right
+	slices.SortFunc(floatingWindows, func(a, b *Window) int {
+		return int(a.Location.WindowPosInWorkspaceView.X) - int(b.Location.WindowPosInWorkspaceView.X)
+	})
 
 	var output strings.Builder
 	for i := 0; i <= int(maxColumn); i++ {
@@ -180,12 +187,22 @@ func (s *NiriState) Redraw() {
 			output.WriteString(urgentBegin)
 		}
 		if focusedColumn == i {
-			output.WriteRune(focused)
+			output.WriteRune(focusedSymbol)
 		} else {
-			output.WriteRune(unfocused)
+			output.WriteRune(unfocusedSymbol)
 		}
 		if i < len(urgentColumns) && urgentColumns[i] {
 			output.WriteString(urgentEnd)
+		}
+	}
+	if len(floatingWindows) > 0 {
+		output.WriteRune(' ')
+		for i := 0; i < len(floatingWindows); i++ {
+			if floatingWindows[i].Id == focusedFloating {
+				output.WriteRune(focusedFloatingSymbol)
+			} else {
+				output.WriteRune(unfocusedFloatingSymbol)
+			}
 		}
 	}
 	write(output.String())
