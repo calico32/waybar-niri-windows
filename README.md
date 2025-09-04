@@ -4,13 +4,6 @@ This is a module for [Waybar](https://github.com/Alexays/Waybar) that displays a
 
 ![Image of the module](screenshot.png)
 
-> [!IMPORTANT]
-> This module requires a custom build of Niri that includes window
-> layout information in IPC messages (see [this
-> PR](https://github.com/YaLTeR/niri/pull/1265)). As of writing (Jun 2025),
-> there is no official release with this feature, so you will need to build Niri
-> from source with the changes from the PR.
-
 ## Installation
 
 You'll need Go to build this module, and you should obviously be using Niri and
