@@ -1,19 +1,15 @@
 # niri-windows module for Waybar
 
-This is a module for [Waybar](https://github.com/Alexays/Waybar) that displays a focus indicator for the current [Niri](https://github.com/YaLTeR/niri) workspace.
+This is a module for [Waybar](https://github.com/Alexays/Waybar) that displays a focus indicator for the current [niri](https://github.com/YaLTeR/niri) workspace.
 
 ![Image of the module](screenshot.png)
 
 > [!IMPORTANT]
-> This module requires a custom build of Niri that includes window
-> layout information in IPC messages (see [this
-> PR](https://github.com/YaLTeR/niri/pull/1265)). As of writing (Jun 2025),
-> there is no official release with this feature, so you will need to build Niri
-> from source with the changes from the PR.
+> niri ≥ v25.08 is required (for the window locations in IPC messages to be available).
 
 ## Installation
 
-You'll need Go to build this module, and you should obviously be using Niri and
+You'll need Go to build this module, and you should obviously be using niri and
 Waybar for this to work.
 
 Clone this repository and:

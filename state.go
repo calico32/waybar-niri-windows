@@ -103,7 +103,7 @@ func (s *NiriState) Update(event Event) {
 	case *WindowLayoutsChanged:
 		for _, change := range event.Changes {
 			window := s.Windows[change.Id]
-			window.Location = change.WindowLayout
+			window.Layout = change.WindowLayout
 			if window.WorkspaceId != nil && *window.WorkspaceId == s.CurrentWorkspaceId {
 				// fmt.Fprintf(os.Stderr, "  Window layout on current workspace changed: %d\n", change.Id)
 				s.needsRedraw = true
@@ -155,7 +155,7 @@ func (s *NiriState) Redraw() {
 	floatingWindows := make([]*Window, 0, len(s.Windows))
 	for _, window := range s.Windows {
 		if window.WorkspaceId != nil && *window.WorkspaceId == s.CurrentWorkspaceId {
-			location := window.Location.TilePosInScrollingLayout
+			location := window.Layout.PosInScrollingLayout
 			if location != nil {
 				col := int(location.X)
 				if window.IsFocused {
@@ -178,11 +178,11 @@ func (s *NiriState) Redraw() {
 
 	// sort floating windows left-to-right
 	slices.SortFunc(floatingWindows, func(a, b *Window) int {
-		return int(a.Location.WindowPosInWorkspaceView.X) - int(b.Location.WindowPosInWorkspaceView.X)
+		return int(a.Layout.TilePosInWorkspaceView.X) - int(b.Layout.TilePosInWorkspaceView.X)
 	})
 
 	var output strings.Builder
-	for i := 0; i <= int(maxColumn); i++ {
+	for i := 1; i <= int(maxColumn); i++ {
 		if i < len(urgentColumns) && urgentColumns[i] {
 			output.WriteString(urgentBegin)
 		}
@@ -196,7 +196,9 @@ func (s *NiriState) Redraw() {
 		}
 	}
 	if len(floatingWindows) > 0 {
-		output.WriteRune(' ')
+		if maxColumn > 0 {
+			output.WriteRune(' ')
+		}
 		for i := 0; i < len(floatingWindows); i++ {
 			if floatingWindows[i].Id == focusedFloating {
 				output.WriteRune(focusedFloatingSymbol)
@@ -206,20 +208,4 @@ func (s *NiriState) Redraw() {
 		}
 	}
 	write(output.String())
-}
-
-func (w *Window) String() string {
-	title := "(no title)"
-	if w.Title != nil {
-		title = *w.Title
-	}
-	focused := ""
-	if w.IsFocused {
-		focused = " (focused)"
-	}
-	wk := "None"
-	if w.WorkspaceId != nil {
-		wk = fmt.Sprintf("%d", *w.WorkspaceId)
-	}
-	return fmt.Sprintf("Window(%d) \"%s\"%s at (%d, %d) on wk %s", w.Id, title, focused, w.Location.TilePosInScrollingLayout.X, w.Location.TilePosInScrollingLayout.Y, wk)
 }

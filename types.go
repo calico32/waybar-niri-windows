@@ -32,25 +32,54 @@ type Window struct {
 	// Whether this window requests your attention.
 	IsUrgent bool `json:"is_urgent"`
 	// Position and size related properties of the Window.
-	Location WindowLayout `json:"location"`
+	Layout WindowLayout `json:"layout"`
 }
 
 // Position and size related properties of a Window.
+//
+// Optional properties will be unset for some windows, do not rely on them being
+// present. Whether some optional properties are present or absent for certain
+// window types may change across niri releases.
+//
+// All sizes and positions are in logical pixels unless stated otherwise.
+// Logical sizes may be fractional. For example, at 1.25 monitor scale, a
+// 2-physical-pixel-wide window border is 1.6 logical pixels wide.
+//
+// This struct contains positions and sizes both for full tiles
+// (Self::tile_size, Self::tile_pos_in_workspace_view) and the window geometry
+// (Self::window_size, Self::window_offset_in_tile). For visual displays, use
+// the tile properties, as they correspond to what the user visually considers
+// “window”. The window properties on the other hand are mainly useful when you
+// need to know the underlying Wayland window sizes, e.g. for application
+// debugging.
 type WindowLayout struct {
-	// Location of the window within a workspace in terms of (column index, tile
-	// index in column).
+	// Location of a tiled window within a workspace: (column index, tile index
+	// in column).
 	//
-	// Unset for floating windows.
-	TilePosInScrollingLayout *Vec2[uint32] `json:"tile_pos_in_scrolling_layout"`
-	// Size of the tile this window is in.
+	// The indices are 1-based, i.e. the leftmost column is at index 1 and the
+	// topmost tile in a column is at index 1. This is consistent with
+	// Action::FocusColumn and Action::FocusWindowInColumn.
+	PosInScrollingLayout *Vec2[uint32] `json:"pos_in_scrolling_layout"`
+	// Size of the tile this window is in, including decorations like borders.
 	TileSize Vec2[float64] `json:"tile_size"`
-	// Size of the window itself.
+	// Size of the window’s visual geometry itself.
+	//
+	// Does not include niri decorations like borders.
+	//
+	// Currently, Wayland toplevel windows can only be integer-sized in logical
+	// pixels, even though it doesn’t necessarily align to physical pixels.
 	WindowSize Vec2[int32] `json:"window_size"`
-	// set for floating windows (“workspace view” is also used for gradients
-	// relative-to in the config)
+	// Tile position within the current view of the workspace.
+	//
+	// This is the same “workspace view” as in gradients’ `relative-to` in the
+	// niri config.
 	TilePosInWorkspaceView *Vec2[float64] `json:"tile_pos_in_workspace_view"`
-	// same but windows themselves
-	WindowPosInWorkspaceView *Vec2[float64] `json:"window_pos_in_workspace_view"`
+	// Location of the window’s visual geometry within its tile.
+	//
+	// This includes things like border sizes. For fullscreened fixed-size
+	// windows this includes the distance from the corner of the black backdrop
+	// to the corner of the (centered) window contents.
+	WindowOffsetInTile Vec2[float64] `json:"window_offset_in_tile"`
 }
 
 // A workspace.
