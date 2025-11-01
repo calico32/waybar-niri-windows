@@ -4,6 +4,20 @@ This is a module for [Waybar](https://github.com/Alexays/Waybar) that displays a
 
 ![Image of the module](screenshot.png)
 
+Tiled columns are shown as `⋅` and floating windows are shown as `∗`. A circle is drawn around a focused column/window. For example:
+
+Two columns, first column focused:
+
+```
+⊙⋅
+```
+
+Three columns, two floating windows, rightmost floating window is focused:
+
+```
+⋅⋅⋅ ∗⊛
+```
+
 > [!IMPORTANT]
 > niri ≥ v25.08 is required (for the window locations in IPC messages to be available).
 
@@ -34,7 +48,7 @@ Add a custom module to your Waybar config (and add any actions you want to trigg
 }
 ```
 
-Style the module however you like, for example:
+Style the module however you like, using a font family that has glyphs for the characters `⋅⊙∗⊛`. for example:
 
 ```css
 /* Use the icons from the Uiua386 font */
@@ -46,6 +60,26 @@ Style the module however you like, for example:
 ```
 
 Restart Waybar to apply the changes.
+
+## Configuration
+
+Pass command-line arguments to the binary to change the symbols used to draw the indicator:
+
+```
+Usage: waybar-niri-windows [options]
+  -f, --focused string
+        Symbol for focused columns (default "⊙")
+  -F, --focused-floating string
+        Symbol for focused floating windows (default "⊛")
+  -u, --unfocused string
+        Symbol for unfocused columns (default "⋅")
+  -U, --unfocused-floating string
+        Symbol for unfocused floating windows (default "∗")
+```
+
+## Contributing
+
+Contributions are welcome! If you find a bug or have a feature request, please open an issue or PR.
 
 ## License
 
