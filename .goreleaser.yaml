@@ -1,0 +1,28 @@
+# yaml-language-server: $schema=https://goreleaser.com/static/schema.json
+version: 2
+
+project_name: waybar-niri-windows
+
+builds:
+  - env: [CGO_ENABLED=0]
+    goos: [linux]
+    goarch: [amd64, arm64]
+    mod_timestamp: '{{ .CommitTimestamp }}'
+    flags: [-trimpath]
+    ldflags: [-s -w]
+
+archives:
+  - formats: binary
+    name_template: '{{ .ProjectName }}_{{ .Os }}_{{ .Arch }}'
+
+checksum:
+  name_template: 'checksums.txt'
+
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - '^docs:'
+      - '^ci:'
+      - '^test:'
+      - '^style:'
