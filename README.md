@@ -23,13 +23,14 @@ Three columns, two floating windows, rightmost floating window is focused:
 
 ## Installation
 
-You'll need Go to build this module, and you should obviously be using niri and
-Waybar for this to work.
+Download the latest release for your platform from the [releases page](https://github.com/calico32/waybar-niri-windows/releases). Mark the binary executable and place it on your `$PATH` (e.g. `~/.local/bin`).
 
-Clone this repository and:
+### From source
 
-- run `go build .`, and copy the resulting binary to your `$PATH`, or
-- run `go install .`
+If you'd like to build from source (or if your platform doesn't have a pre-built binary), clone this repository and:
+
+- run `go build .`, and copy the resulting binary to your `$PATH` (e.g. `~/.local/bin`); or
+- run `go install .` to install to `$GOBIN` (usually `~/go/bin`, make sure to add it to your `$PATH`)
 
 Add a custom module to your Waybar config (and add any actions you want to trigger on click/scroll):
 
