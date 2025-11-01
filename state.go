@@ -136,10 +136,6 @@ func (s *NiriState) Update(event Event) {
 	// fmt.Fprintf(os.Stderr, "Processed event: %T\n", event)
 }
 
-const unfocusedSymbol = '⋅'
-const focusedSymbol = '⊙'
-const unfocusedFloatingSymbol = '∗'
-const focusedFloatingSymbol = '⊛'
 const urgentBegin = "<span color=\"#fb2c36\">"
 const urgentEnd = "</span>"
 
@@ -187,9 +183,9 @@ func (s *NiriState) Redraw() {
 			output.WriteString(urgentBegin)
 		}
 		if focusedColumn == i {
-			output.WriteRune(focusedSymbol)
+			output.WriteString(*focusedSymbol)
 		} else {
-			output.WriteRune(unfocusedSymbol)
+			output.WriteString(*unfocusedSymbol)
 		}
 		if i < len(urgentColumns) && urgentColumns[i] {
 			output.WriteString(urgentEnd)
@@ -201,9 +197,9 @@ func (s *NiriState) Redraw() {
 		}
 		for i := 0; i < len(floatingWindows); i++ {
 			if floatingWindows[i].Id == focusedFloating {
-				output.WriteRune(focusedFloatingSymbol)
+				output.WriteString(*focusedFloatingSymbol)
 			} else {
-				output.WriteRune(unfocusedFloatingSymbol)
+				output.WriteString(*unfocusedFloatingSymbol)
 			}
 		}
 	}
