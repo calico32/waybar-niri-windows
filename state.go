@@ -31,6 +31,7 @@ func NewNiriState() *NiriState {
 
 func (s *NiriState) Update(event Event) {
 	// fmt.Fprintf(os.Stderr, "Received event: %T\n", event)
+	s.needsRedraw = false
 	switch event := event.(type) {
 	case *WorkspacesChanged:
 		s.Workspaces = make(map[uint64]*Workspace)
@@ -68,6 +69,7 @@ func (s *NiriState) Update(event Event) {
 			}
 			s.CurrentWorkspaceId = event.Id
 			wk.IsFocused = true
+			s.needsRedraw = true
 		}
 	case *WindowFocusChanged:
 		s.needsRedraw = true
@@ -84,14 +86,12 @@ func (s *NiriState) Update(event Event) {
 			} else {
 				fmt.Fprintf(os.Stderr, "Warning: focused window %d not found in state\n", s.CurrentWindowId)
 			}
-			s.needsRedraw = true
 		} else {
 			s.CurrentWindowId = None
 			// fmt.Fprintf(os.Stderr, "  Window focus changed: %d -> None\n", s.CurrentWindowId)
 			for _, window := range s.Windows {
 				window.IsFocused = false
 			}
-			s.needsRedraw = true
 		}
 	case *WindowClosed:
 		delete(s.Windows, event.Id)
@@ -122,11 +122,13 @@ func (s *NiriState) Update(event Event) {
 		window := s.Windows[event.Id]
 		if window != nil {
 			window.IsUrgent = event.Urgent
+			s.needsRedraw = true
 		}
 	case *WorkspaceUrgencyChanged:
 		workspace := s.Workspaces[event.Id]
 		if workspace != nil {
 			workspace.IsUrgent = event.Urgent
+			s.needsRedraw = true
 		}
 	default:
 		// fmt.Fprintf(os.Stderr, "Ignoring event: %T\n", event)
