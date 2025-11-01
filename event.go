@@ -51,6 +51,12 @@ type NiriEvent struct {
 	KeyboardLayoutSwitched *KeyboardLayoutSwitched
 	// The overview was opened or closed.
 	OverviewOpenedOrClosed *OverviewOpenedOrClosed
+	// The configuration was reloaded.
+	//
+	// You will always receive this event when connecting to the event stream, indicating the last config load attempt.
+	ConfigLoaded *ConfigLoaded
+	// A screenshot was captured.
+	ScreenshotCaptured *ScreenshotCaptured
 }
 
 // The workspace configuration has changed.
@@ -193,6 +199,24 @@ type OverviewOpenedOrClosed struct {
 	IsOpen bool `json:"is_open"`
 }
 
+// The configuration was reloaded.
+//
+// You will always receive this event when connecting to the event stream, indicating the last config load attempt.
+type ConfigLoaded struct {
+	// Whether the loading failed.
+	//
+	// For example, the config file couldn't be parsed.
+	Failed bool `json:"failed"`
+}
+
+// A screenshot was captured.
+type ScreenshotCaptured struct {
+	// The file path where the screenshot was saved, if it was written to disk.
+	//
+	// If None, the screenshot was either only copied to the clipboard, or the path couldn't be converted to a String (e.g. contained invalid UTF-8 bytes).
+	Path *string `json:"path"`
+}
+
 func (*WorkspacesChanged) Name() string            { return "WorkspacesChanged" }
 func (*WorkspaceUrgencyChanged) Name() string      { return "WorkspaceUrgencyChanged" }
 func (*WorkspaceActivated) Name() string           { return "WorkspaceActivated" }
@@ -206,3 +230,5 @@ func (*WindowUrgencyChanged) Name() string         { return "WindowUrgencyChange
 func (*KeyboardLayoutsChanged) Name() string       { return "KeyboardLayoutsChanged" }
 func (*KeyboardLayoutSwitched) Name() string       { return "KeyboardLayoutSwitched" }
 func (*OverviewOpenedOrClosed) Name() string       { return "OverviewOpenedOrClosed" }
+func (*ConfigLoaded) Name() string                 { return "ConfigLoaded" }
+func (*ScreenshotCaptured) Name() string           { return "ScreenshotCaptured" }
