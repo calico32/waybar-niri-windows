@@ -1,82 +1,70 @@
 # niri-windows module for Waybar
 
-This is a module for [Waybar](https://github.com/Alexays/Waybar) that displays a focus indicator for the current [niri](https://github.com/YaLTeR/niri) workspace.
+This is a WIP module for [Waybar](https://github.com/Alexays/Waybar) that displays a window minimap for the current [niri](https://github.com/YaLTeR/niri) workspace.
 
 ![Image of the module](screenshot.png)
-
-Tiled columns are shown as `⋅` and floating windows are shown as `∗`. A circle is drawn around a focused column/window. For example:
-
-Two columns, first column focused:
-
-```
-⊙⋅
-```
-
-Three columns, two floating windows, rightmost floating window is focused:
-
-```
-⋅⋅⋅ ∗⊛
-```
 
 > [!IMPORTANT]
 > niri ≥ v25.08 is required (for the window locations in IPC messages to be available).
 
 ## Installation
 
-Download the latest release for your platform from the [releases page](https://github.com/calico32/waybar-niri-windows/releases). Mark the binary executable and place it on your `$PATH` (e.g. `~/.local/bin`).
+Download the latest release for your platform from the [releases
+page](https://github.com/calico32/waybar-niri-windows/releases). You can place
+the `.so` anywhere permanent. `~/.config/waybar` is a good place.
 
 ### From source
 
-If you'd like to build from source (or if your platform doesn't have a pre-built binary), clone this repository and:
+If you'd like to build from source (or if your platform doesn't have a pre-built binary):
 
-- run `go build .`, and copy the resulting binary to your `$PATH` (e.g. `~/.local/bin`); or
-- run `go install .` to install to `$GOBIN` (usually `~/go/bin`, make sure to add it to your `$PATH`)
+1. Install GTK 3 + development headers (`apt install libgtk-3-dev`, `pacman -S gtk3`, etc.).
+2. Clone this repository.
+3. Run `make` to produce `waybar-niri-windows.so`. This might take a while (thanks to cgo).
 
-Add a custom module to your Waybar config (and add any actions you want to trigger on click/scroll):
+Move the library anywhere permanent, e.g. `~/.config/waybar`.
 
-```json
+Add a CFFI module to your Waybar config (and add any niri actions you want to trigger on scroll):
+
+```jsonc
 {
-  "modules-left": ["custom/niri-windows"],
-  "custom/niri-windows": {
-    "exec": "/path/to/waybar-niri-windows",
-    "return-type": "json",
-    "restart-interval": 1,
-    "hide-empty-text": true,
-    "on-scroll-up": "niri msg action focus-column-left",
-    "on-scroll-down": "niri msg action focus-column-right",
-    "on-click": "niri msg action toggle-overview"
+  "modules-left": ["cffi/niri-windows"],
+  "cffi/niri-windows": {
+    "module_path": "/path/to/waybar-niri-windows.so",
+    // optionally, customize the symbols used to draw the indicator:
+    // "symbols": {
+    //   "unfocused": "⋅",
+    //   "focused": "⊙",
+    //   "unfocused-floating": "∗",
+    //   "focused-floating": "⊛"
+    // },
+    "actions": {
+      // use niri IPC action names to trigger them: https://yalter.github.io/niri/niri_ipc/enum.Action.html
+      // any action that has no fields is supported
+      "on-scroll-up": "FocusColumnLeft",
+      "on-scroll-down": "FocusColumnRight"
+      // don't configure click actions, they're handled by the module itself
+    }
   }
 }
 ```
 
-Style the module however you like, using a font family that has glyphs for the characters `⋅⊙∗⊛`. for example:
+Use any of these selectors in your CSS to style the module:
+
+- `.cffi-niri-windows .tile`,
+- `.cffi-niri-windows .tile.focused`,
+- `.cffi-niri-windows .column`,
+- `.cffi-niri-windows .column.focused`,
 
 ```css
-/* Use the icons from the Uiua386 font */
-#custom-niri-windows {
-  font-family: 'Uiua386';
-  font-size: 18px;
-  margin-top: -2px;
+.cffi-niri-windows .tile {
+  background-color: rgba(255, 255, 255, 0.501);
+}
+.cffi-niri-windows .tile.focused {
+  background-color: rgb(255, 255, 255);
 }
 ```
 
 Restart Waybar to apply the changes.
-
-## Configuration
-
-Pass command-line arguments to the binary to change the symbols used to draw the indicator:
-
-```
-Usage: waybar-niri-windows [options]
-  -f, --focused string
-        Symbol for focused columns (default "⊙")
-  -F, --focused-floating string
-        Symbol for focused floating windows (default "⊛")
-  -u, --unfocused string
-        Symbol for unfocused columns (default "⋅")
-  -U, --unfocused-floating string
-        Symbol for unfocused floating windows (default "∗")
-```
 
 ## Contributing
 

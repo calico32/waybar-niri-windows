@@ -1,0 +1,15 @@
+{
+    "position": "bottom",
+    "height": 24,
+    "spacing": 8,
+    "modules-center": [
+        "cffi/niri-windows"
+    ],
+    "cffi/niri-windows": {
+        "module_path": "./waybar-niri-windows.so",
+        "actions": {
+            "on-scroll-up": "FocusColumnLeft",
+            "on-scroll-down": "FocusColumnRight"
+        }
+    }
+}

@@ -1,4 +1,4 @@
-package main
+package niri
 
 import (
 	"encoding/json"

@@ -4,8 +4,7 @@ version: 2
 project_name: waybar-niri-windows
 
 builds:
-  - env: [CGO_ENABLED=0]
-    goos: [linux]
+  - goos: [linux]
     goarch: [amd64, arm64]
     mod_timestamp: '{{ .CommitTimestamp }}'
     flags: [-trimpath]
@@ -17,6 +16,9 @@ archives:
 
 checksum:
   name_template: 'checksums.txt'
+
+release:
+  prerelease: auto
 
 changelog:
   sort: asc

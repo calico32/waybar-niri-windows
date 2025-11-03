@@ -1,0 +1,8 @@
+{
+    "gopls": {
+        "analyses": {
+            "unsafeptr": false,
+            "composites": false
+        }
+    }
+}

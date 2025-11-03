@@ -1,0 +1,31 @@
+* {
+  font-family: IBM Plex Sans, MesloLGS NF, FontAwesome, Roboto, Helvetica, Arial,
+    sans-serif;
+  font-size: 12px;
+}
+
+window#waybar {
+  background-color: rgba(43, 48, 59, 0.8);
+  border-top: 1px solid rgba(100, 114, 125, 0.8);
+  color: #ffffff;
+  transition-property: background-color;
+  transition-duration: 0.5s;
+}
+
+window#waybar.hidden {
+  opacity: 0.2;
+}
+
+.cffi-niri-windows label {
+  font-family: Uiua386;
+  font-size: 18px;
+  margin-top: -2px;
+}
+
+.cffi-niri-windows .tile {
+  background-color: rgba(149, 178, 200, 0.489);
+}
+
+.cffi-niri-windows .tile.focused {
+  background-color: rgba(247, 251, 255, 0.553);
+}
