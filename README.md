@@ -30,6 +30,11 @@ Add a CFFI module to your Waybar config (and add any niri actions you want to tr
   "modules-left": ["cffi/niri-windows"],
   "cffi/niri-windows": {
     "module_path": "/path/to/waybar-niri-windows.so",
+    // add CSS classes to windows based on their App ID (see `niri msg windows`):
+    "rules": [
+      // .alacritty will be added to all windows with the App ID "Alacritty"
+      { "app-id": "Alacritty", "class": "alacritty" }
+    ],
     "actions": {
       // use niri IPC action names to trigger them: https://yalter.github.io/niri/niri_ipc/enum.Action.html
       // any action that has no fields is supported
@@ -43,10 +48,12 @@ Add a CFFI module to your Waybar config (and add any niri actions you want to tr
 
 Use any of these selectors in your CSS to style the module:
 
-- `.cffi-niri-windows .tile`,
-- `.cffi-niri-windows .tile.focused`,
-- `.cffi-niri-windows .column`,
-- `.cffi-niri-windows .column.focused`,
+- `.cffi-niri-windows .tile`
+- `.cffi-niri-windows .tile.focused`
+- `.cffi-niri-windows .tile.<custom-class>` (see `rules` in the config)
+- `.cffi-niri-windows .tile.<custom-class>.focused` (see `rules` in the config)
+- `.cffi-niri-windows .column`
+- `.cffi-niri-windows .column.focused`
 
 ```css
 .cffi-niri-windows .tile {

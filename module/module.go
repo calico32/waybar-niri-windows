@@ -25,6 +25,12 @@ type Instance struct {
 	symbols      niri.Symbols
 	ScreenHeight int
 	ScreenWidth  int
+	WindowRules  []WindowRule
+}
+
+type WindowRule struct {
+	AppId string `json:"app-id"`
+	Class string `json:"class"`
 }
 
 func New(niriState *niri.State, niriSocket net.Conn, queueUpdate func()) *Instance {
@@ -70,10 +76,10 @@ func (i *Instance) Preinit(root *gtk.Container) error {
 
 func (i *Instance) ApplyConfig(key, value string) {
 	switch key {
-	case "symbols":
-		err := json.Unmarshal([]byte(value), &i.symbols)
+	case "rules":
+		err := json.Unmarshal([]byte(value), &i.WindowRules)
 		if err != nil {
-			log.Printf("wbcffi: error unmarshaling symbols: %s", err)
+			log.Printf("wbcffi: error unmarshaling rules: %s", err)
 			return
 		}
 	}
@@ -166,6 +172,14 @@ func (i *Instance) Update() {
 				colStyle.AddClass("focused")
 			}
 			windowBox.SetSizeRequest(width, height)
+			if window.AppId != nil {
+				for _, rule := range i.WindowRules {
+					if *window.AppId == rule.AppId {
+						style.AddClass(rule.Class)
+						break
+					}
+				}
+			}
 
 			windowBox.Connect("realize", func(obj *gtk.EventBox) {
 				gdkWindow, _ := windowBox.GetWindow()

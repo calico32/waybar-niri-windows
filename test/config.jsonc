@@ -7,6 +7,16 @@
     ],
     "cffi/niri-windows": {
         "module_path": "./waybar-niri-windows.so",
+        "rules": [
+            {
+                "app-id": "Alacritty",
+                "class": "alacritty"
+            },
+            {
+                "app-id": "code-insiders",
+                "class": "vscode"
+            }
+        ],
         "actions": {
             "on-scroll-up": "FocusColumnLeft",
             "on-scroll-down": "FocusColumnRight"

@@ -23,9 +23,25 @@ window#waybar.hidden {
 }
 
 .cffi-niri-windows .tile {
-  background-color: rgba(149, 178, 200, 0.489);
+  background-color: rgba(255, 255, 255, 0.297);
 }
 
 .cffi-niri-windows .tile.focused {
-  background-color: rgba(247, 251, 255, 0.553);
+  background-color: rgba(255, 255, 255, 0.498);
+}
+
+.cffi-niri-windows .tile.vscode {
+  background-color: rgba(40, 157, 137, 0.373);
+}
+
+.cffi-niri-windows .tile.vscode.focused {
+  background-color: rgba(63, 240, 211, 0.641);
+}
+
+.cffi-niri-windows .tile.alacritty {
+  background-color: rgba(245, 116, 1, 0.373);
+}
+
+.cffi-niri-windows .tile.alacritty.focused {
+  background-color: rgba(245, 115, 1, 0.883);
 }
