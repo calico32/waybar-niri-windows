@@ -30,19 +30,12 @@ Add a CFFI module to your Waybar config (and add any niri actions you want to tr
   "modules-left": ["cffi/niri-windows"],
   "cffi/niri-windows": {
     "module_path": "/path/to/waybar-niri-windows.so",
-    // optionally, customize the symbols used to draw the indicator:
-    // "symbols": {
-    //   "unfocused": "⋅",
-    //   "focused": "⊙",
-    //   "unfocused-floating": "∗",
-    //   "focused-floating": "⊛"
-    // },
     "actions": {
       // use niri IPC action names to trigger them: https://yalter.github.io/niri/niri_ipc/enum.Action.html
       // any action that has no fields is supported
       "on-scroll-up": "FocusColumnLeft",
       "on-scroll-down": "FocusColumnRight"
-      // don't configure click actions, they're handled by the module itself
+      // don't configure click actions here: they're handled by the module itself
     }
   }
 }
