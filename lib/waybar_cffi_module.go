@@ -33,7 +33,7 @@ static inline void QueueUpdate(void (*queue_update)(wbcffi_module *), wbcffi_mod
 */
 import "C"
 
-const debug = false
+var logOutput = io.Discard
 
 var instances = make(map[uintptr]*module.Instance)
 var niriState *niri.State
@@ -42,7 +42,7 @@ var niriSocket net.Conn
 func initError(format string, args ...any) {
 	log.SetOutput(os.Stderr)
 	log.Printf("wbcffi: error initializing module: %s", fmt.Sprintf(format, args...))
-	log.SetOutput(io.Discard)
+	log.SetOutput(logOutput)
 }
 
 //export wbcffi_init
@@ -50,9 +50,7 @@ func wbcffi_init(init_info *C.wbcffi_init_info_t,
 	config_entries *C.wbcffi_config_entry_t,
 	config_entries_len C.size_t) unsafe.Pointer {
 
-	if !debug {
-		log.SetOutput(io.Discard)
-	}
+	log.SetOutput(logOutput)
 
 	if niriState == nil {
 		var err error

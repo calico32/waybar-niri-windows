@@ -6,7 +6,7 @@
         "cffi/niri-windows"
     ],
     "cffi/niri-windows": {
-        "module_path": "./waybar-niri-windows.so",
+        "module_path": "./waybar-niri-windows-debug.so",
         "rules": [
             {
                 "title": "^~$",
