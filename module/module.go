@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"math"
 	"math/rand/v2"
 	"net"
 	"slices"
@@ -32,6 +33,11 @@ type WindowRule struct {
 	AppId string `json:"app-id"`
 	Class string `json:"class"`
 }
+
+// assumes maximum "normal" window height is 95% of screen height
+// TODO: compute real value somehow? tile position isn't known for tiled windows;
+// see https://github.com/YaLTeR/niri/issues/2381
+const screenHeightScale = 0.95
 
 func New(niriState *niri.State, niriSocket net.Conn, queueUpdate func()) *Instance {
 	var id uintptr
@@ -119,8 +125,8 @@ func (i *Instance) Update() {
 		return
 	}
 
-	maxHeight := i.box.GetAllocatedHeight()
-	scale := float64(maxHeight) / float64(i.ScreenHeight)
+	maxTotalWindowHeight := i.box.GetAllocatedHeight()
+	scale := float64(maxTotalWindowHeight) / float64(i.ScreenHeight)
 
 	columns := groupBy(tiled, func(w *niri.Window) uint32 {
 		return w.Layout.PosInScrollingLayout.X
@@ -136,33 +142,49 @@ func (i *Instance) Update() {
 		i.box.Add(colBox)
 
 		var width int
-		var totalHeight float64
+		var windowHeights []int
+		var totalTileHeight float64
 		for _, window := range column {
 			width = int(window.Layout.TileSize.X * scale)
-			totalHeight += window.Layout.TileSize.Y
+			totalTileHeight += window.Layout.TileSize.Y
 		}
-		var windowBoxHeights []int
-		for _, window := range column {
-			height := int(float64(maxHeight-len(column)-1) * (window.Layout.TileSize.Y / totalHeight))
-			windowBoxHeights = append(windowBoxHeights, height)
-		}
-		totalBoxHeight := 0
-		for _, height := range windowBoxHeights {
-			totalBoxHeight += height
-		}
-		leftoverHeight := maxHeight - len(column) - 1 - totalBoxHeight
-		idx := 0
-		for leftoverHeight > 0 {
-			windowBoxHeights[idx]++
-			leftoverHeight--
-			idx++
-			if idx >= len(windowBoxHeights) {
-				idx = 0
+		if len(column) == 1 {
+			screenHeight := float64(i.ScreenHeight) * screenHeightScale
+			height := min(
+				int(math.Round(float64(column[0].Layout.TileSize.Y)/screenHeight*float64(maxTotalWindowHeight))),
+				maxTotalWindowHeight,
+			)
+			windowHeights = append(windowHeights, int(height))
+		} else {
+			totalWindowHeight := 0
+			maxTotalWindowHeight = maxTotalWindowHeight - (len(column) - 1) // remove 1 pixel between each window
+			for _, window := range column {
+				height := int(math.Round(float64(maxTotalWindowHeight) * (window.Layout.TileSize.Y / totalTileHeight)))
+				totalWindowHeight += height
+				windowHeights = append(windowHeights, height)
+			}
+			leftoverHeight := maxTotalWindowHeight - totalWindowHeight
+			idx := 0
+			for leftoverHeight > 0 {
+				windowHeights[idx]++
+				leftoverHeight--
+				idx++
+				if idx >= len(windowHeights) {
+					idx = 0
+				}
+			}
+			for leftoverHeight < 0 {
+				windowHeights[idx]--
+				leftoverHeight++
+				idx++
+				if idx >= len(windowHeights) {
+					idx = 0
+				}
 			}
 		}
 
 		for idx, window := range column {
-			height := windowBoxHeights[idx]
+			height := windowHeights[idx]
 
 			windowBox, _ := gtk.EventBoxNew()
 			style, _ := windowBox.GetStyleContext()
