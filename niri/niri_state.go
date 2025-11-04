@@ -36,10 +36,14 @@ func NewNiriState() *State {
 }
 
 func (s *State) OnUpdate(id uint64, f func(*State)) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
 	s.onUpdate[id] = f
 }
 
 func (s *State) RemoveOnUpdate(id uint64) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
 	delete(s.onUpdate, id)
 }
 
