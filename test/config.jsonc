@@ -9,6 +9,14 @@
         "module_path": "./waybar-niri-windows.so",
         "rules": [
             {
+                "title": "^~$",
+                "class": "alacritty-3"
+            },
+            {
+                "title": "~",
+                "class": "alacritty-2"
+            },
+            {
                 "app-id": "Alacritty",
                 "class": "alacritty"
             },

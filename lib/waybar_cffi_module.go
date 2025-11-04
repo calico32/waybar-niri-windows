@@ -5,6 +5,7 @@ import (
 	"io"
 	"log"
 	"net"
+	"os"
 	"strconv"
 	"time"
 	"unsafe"
@@ -38,6 +39,12 @@ var instances = make(map[uintptr]*module.Instance)
 var niriState *niri.State
 var niriSocket net.Conn
 
+func initError(format string, args ...any) {
+	log.SetOutput(os.Stderr)
+	log.Printf("wbcffi: error initializing module: %s", fmt.Sprintf(format, args...))
+	log.SetOutput(io.Discard)
+}
+
 //export wbcffi_init
 func wbcffi_init(init_info *C.wbcffi_init_info_t,
 	config_entries *C.wbcffi_config_entry_t,
@@ -52,7 +59,7 @@ func wbcffi_init(init_info *C.wbcffi_init_info_t,
 		log.Printf("wbcffi: connecting to niri socket")
 		niriState, niriSocket, err = niri.Init()
 		if err != nil {
-			log.Printf("wbcffi: error connecting to niri socket: %s", err)
+			initError("connecting to niri socket: %s", err)
 			return nil
 		}
 	}
@@ -102,7 +109,11 @@ func wbcffi_init(init_info *C.wbcffi_init_info_t,
 	for _, entry := range unsafe.Slice(config_entries, config_entries_len) {
 		key, value := C.GoString(entry.key), C.GoString(entry.value)
 		log.Printf("wbcffi: config %s = %s", key, value)
-		i.ApplyConfig(key, value)
+		err := i.ApplyConfig(key, value)
+		if err != nil {
+			initError("%s config: %s", key, err)
+			return nil
+		}
 	}
 
 	return unsafe.Pointer(i.Id)

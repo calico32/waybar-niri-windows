@@ -45,3 +45,19 @@ window#waybar.hidden {
 .cffi-niri-windows .tile.alacritty.focused {
   background-color: rgba(245, 115, 1, 0.883);
 }
+
+.cffi-niri-windows .tile.alacritty-2 {
+  background-color: rgba(25, 245, 1, 0.373);
+}
+
+.cffi-niri-windows .tile.alacritty-2.focused {
+  background-color: rgba(25, 245, 1, 0.883);
+}
+
+.cffi-niri-windows .tile.alacritty-3 {
+  background-color: rgba(1, 34, 245, 0.373);
+}
+
+.cffi-niri-windows .tile.alacritty-3.focused {
+  background-color: rgba(1, 34, 245, 0.883);
+}

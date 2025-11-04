@@ -7,6 +7,7 @@ import (
 	"math"
 	"math/rand/v2"
 	"net"
+	"regexp"
 	"slices"
 	"strconv"
 	"wnw/niri"
@@ -29,9 +30,18 @@ type Instance struct {
 	WindowRules  []WindowRule
 }
 
+type WindowRuleConfig struct {
+	AppId    string `json:"app-id"`
+	Title    string `json:"title"`
+	Class    string `json:"class"`
+	Continue bool   `json:"continue"`
+}
+
 type WindowRule struct {
-	AppId string `json:"app-id"`
-	Class string `json:"class"`
+	AppId    *regexp.Regexp
+	Title    *regexp.Regexp
+	Class    string
+	Continue bool
 }
 
 // assumes maximum "normal" window height is 95% of screen height
@@ -80,15 +90,33 @@ func (i *Instance) Preinit(root *gtk.Container) error {
 	return nil
 }
 
-func (i *Instance) ApplyConfig(key, value string) {
+func (i *Instance) ApplyConfig(key, value string) error {
 	switch key {
 	case "rules":
-		err := json.Unmarshal([]byte(value), &i.WindowRules)
+		var rules []WindowRuleConfig
+		err := json.Unmarshal([]byte(value), &rules)
 		if err != nil {
-			log.Printf("wbcffi: error unmarshaling rules: %s", err)
-			return
+			return fmt.Errorf("wbcffi: error unmarshaling rules: %w", err)
 		}
+		i.WindowRules = make([]WindowRule, len(rules))
+		for idx, rule := range rules {
+			i.WindowRules[idx].AppId, err = regexp.Compile(rule.AppId)
+			if err != nil {
+				return fmt.Errorf("wbcffi: error compiling regex: %w", err)
+			}
+			i.WindowRules[idx].Title, err = regexp.Compile(rule.Title)
+			if err != nil {
+				return fmt.Errorf("wbcffi: error compiling regex: %w", err)
+			}
+			i.WindowRules[idx].Class = rule.Class
+			i.WindowRules[idx].Continue = rule.Continue
+		}
+	case "module_path", "actions":
+		// ignore
+	default:
+		return fmt.Errorf("wbcffi: unknown config key: %s", key)
 	}
+	return nil
 }
 
 func (i *Instance) Init() {
@@ -196,9 +224,19 @@ func (i *Instance) Update() {
 			windowBox.SetSizeRequest(width, height)
 			if window.AppId != nil {
 				for _, rule := range i.WindowRules {
-					if *window.AppId == rule.AppId {
+					appIdMatched := rule.AppId == nil
+					titleMatched := rule.Title == nil
+					if rule.AppId != nil && window.AppId != nil && rule.AppId.MatchString(*window.AppId) {
+						appIdMatched = true
+					}
+					if rule.Title != nil && window.Title != nil && rule.Title.MatchString(*window.Title) {
+						titleMatched = true
+					}
+					if appIdMatched && titleMatched {
 						style.AddClass(rule.Class)
-						break
+						if !rule.Continue {
+							break
+						}
 					}
 				}
 			}
