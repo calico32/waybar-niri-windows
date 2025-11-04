@@ -27,22 +27,25 @@ Add a CFFI module to your Waybar config (and add any niri actions you want to tr
 
 ```jsonc
 {
-  "modules-left": ["cffi/niri-windows"],
-  "cffi/niri-windows": {
+    "modules-left": ["cffi/niri-windows"],
+    "cffi/niri-windows": {
     "module_path": "/path/to/waybar-niri-windows.so",
-    // add CSS classes to windows based on their App ID (see `niri msg windows`):
-    "rules": [
-      // .alacritty will be added to all windows with the App ID "Alacritty"
-      { "app-id": "Alacritty", "class": "alacritty" }
-    ],
-    "actions": {
-      // use niri IPC action names to trigger them: https://yalter.github.io/niri/niri_ipc/enum.Action.html
-      // any action that has no fields is supported
-      "on-scroll-up": "FocusColumnLeft",
-      "on-scroll-down": "FocusColumnRight"
-      // don't configure click actions here: they're handled by the module itself
-    }
-  }
+        // add CSS classes to windows based on their App ID/Title (see `niri msg windows`):
+        "rules": [
+            // Go regular expression syntax is supported (see https://pkg.go.dev/regexp/syntax)
+            // .alacritty will be added to all windows with the App ID "Alacritty"
+            { "app-id": "Alacritty", "class": "alacritty" }
+            // .youtube-music will be added to all windows that have "YouTube Music" at the end of their title
+            { "title": "YouTube Music$", "class": "youtube-music" }
+        ],
+        "actions": {
+            // use niri IPC action names to trigger them: https://yalter.github.io/niri/niri_ipc/enum.Action.html
+            // any action that has no fields is supported
+            "on-scroll-up": "FocusColumnLeft",
+            "on-scroll-down": "FocusColumnRight"
+            // don't configure click actions here: they're handled by the module itself
+        }
+   }
 }
 ```
 
