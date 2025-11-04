@@ -187,7 +187,10 @@ func (i *Instance) Update() {
 			totalWindowHeight := 0
 			maxTotalWindowHeight = maxTotalWindowHeight - (len(column) - 1) // remove 1 pixel between each window
 			for _, window := range column {
-				height := int(math.Round(float64(maxTotalWindowHeight) * (window.Layout.TileSize.Y / totalTileHeight)))
+				height := max(
+					int(math.Round(float64(maxTotalWindowHeight)*(window.Layout.TileSize.Y/totalTileHeight))),
+					1, // minimum height enforced by GTK is 1
+				)
 				totalWindowHeight += height
 				windowHeights = append(windowHeights, height)
 			}
@@ -202,16 +205,33 @@ func (i *Instance) Update() {
 				}
 			}
 			for leftoverHeight < 0 {
-				windowHeights[idx]--
-				leftoverHeight++
-				idx++
-				if idx >= len(windowHeights) {
-					idx = 0
+				iterations := 0
+				for leftoverHeight < 0 {
+					if windowHeights[idx] > 1 {
+						windowHeights[idx]--
+						leftoverHeight++
+					} else {
+						iterations++
+					}
+					if iterations > 100 {
+						// bar must be too small to fit all windows, we'll try removing one
+						windowHeights = windowHeights[:len(windowHeights)-1]
+						leftoverHeight++ // account for removed gap
+						break
+					}
+					idx++
+					if idx >= len(windowHeights) {
+						idx = 0
+					}
 				}
 			}
 		}
 
 		for idx, window := range column {
+			if idx > len(windowHeights)-1 {
+				// we had to cut this window to fit into the bar, stop here
+				break
+			}
 			height := windowHeights[idx]
 
 			windowBox, _ := gtk.EventBoxNew()
