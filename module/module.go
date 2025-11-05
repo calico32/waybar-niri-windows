@@ -238,29 +238,7 @@ func (i *Instance) Update() {
 				gdkWindow.SetCursor(pointer)
 			})
 
-			windowBox.Connect("button-press-event", func(obj *gtk.EventBox, event *gdk.Event) {
-				eventButton := gdk.EventButtonNewFromEvent(event)
-				var request map[string]any
-				switch eventButton.Button() {
-				case gdk.BUTTON_PRIMARY:
-					request = map[string]any{
-						"Action": map[string]any{
-							"FocusWindow": map[string]any{"id": window.Id},
-						},
-					}
-				case gdk.BUTTON_MIDDLE:
-					request = map[string]any{
-						"Action": map[string]any{
-							"CloseWindow": map[string]any{"id": window.Id},
-						},
-					}
-				}
-
-				err := i.niriSocket.Request(request)
-				if err != nil {
-					log.Errorf("error sending action: %s", err)
-				}
-			})
+			windowBox.Connect("button-press-event", i.handleButtonPress(window))
 
 			colBox.Add(windowBox)
 		}
@@ -330,6 +308,35 @@ func (i *Instance) calculateWindowSizes(column []*niri.Window, scale float64, ma
 		}
 	}
 	return windowHeights, width
+}
+
+func (i *Instance) handleButtonPress(window *niri.Window) func(obj *gtk.EventBox, event *gdk.Event) {
+	return func(obj *gtk.EventBox, event *gdk.Event) {
+		eventButton := gdk.EventButtonNewFromEvent(event)
+		var request map[string]any
+		switch eventButton.Button() {
+		case gdk.BUTTON_PRIMARY:
+			request = map[string]any{
+				"Action": map[string]any{
+					"FocusWindow": map[string]any{"id": window.Id},
+				},
+			}
+		case gdk.BUTTON_MIDDLE:
+			request = map[string]any{
+				"Action": map[string]any{
+					"CloseWindow": map[string]any{"id": window.Id},
+				},
+			}
+		}
+		if request == nil {
+			return
+		}
+
+		err := i.niriSocket.Request(request)
+		if err != nil {
+			log.Errorf("error sending action: %s", err)
+		}
+	}
 }
 
 func (i *Instance) Refresh(signal int) {
