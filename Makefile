@@ -11,5 +11,6 @@ waybar:
 
 clean:
 	rm -f waybar-niri-windows.so
+	rm -f waybar-niri-windows-debug.so
 
 .PHONY: waybar clean
