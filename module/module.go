@@ -207,21 +207,26 @@ func (i *Instance) Update() {
 				colStyle.AddClass("focused")
 			}
 			windowBox.SetSizeRequest(width, height)
-			if window.AppId != nil {
-				for _, rule := range i.WindowRules {
-					appIdMatched := rule.AppId == nil
-					titleMatched := rule.Title == nil
-					if rule.AppId != nil && window.AppId != nil && rule.AppId.MatchString(*window.AppId) {
-						appIdMatched = true
-					}
-					if rule.Title != nil && window.Title != nil && rule.Title.MatchString(*window.Title) {
-						titleMatched = true
-					}
-					if appIdMatched && titleMatched {
-						style.AddClass(rule.Class)
-						if !rule.Continue {
-							break
-						}
+
+			if window.Title != nil {
+				windowBox.SetTooltipText(*window.Title)
+			} else if window.AppId != nil {
+				windowBox.SetTooltipText(*window.AppId)
+			}
+
+			for _, rule := range i.windowRules {
+				appIdMatched := rule.AppId == nil
+				titleMatched := rule.Title == nil
+				if rule.AppId != nil && window.AppId != nil && rule.AppId.MatchString(*window.AppId) {
+					appIdMatched = true
+				}
+				if rule.Title != nil && window.Title != nil && rule.Title.MatchString(*window.Title) {
+					titleMatched = true
+				}
+				if appIdMatched && titleMatched {
+					style.AddClass(rule.Class)
+					if !rule.Continue {
+						break
 					}
 				}
 			}
