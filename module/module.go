@@ -8,6 +8,7 @@ import (
 	"regexp"
 	"slices"
 	"strconv"
+	"sync"
 	"wnw/log"
 	"wnw/niri"
 
@@ -16,6 +17,7 @@ import (
 )
 
 type Instance struct {
+	mu           sync.RWMutex
 	id           uintptr
 	queueUpdate  func()
 	box          *gtk.Box
@@ -26,10 +28,11 @@ type Instance struct {
 	symbols      niri.Symbols
 	screenHeight int
 	screenWidth  int
-	WindowRules  []WindowRule
+	windowRules  []WindowRule
 }
 
 func (i *Instance) Id() uintptr {
+	// we never change the id, so we can just return it
 	return i.id
 }
 
@@ -53,7 +56,6 @@ type WindowRule struct {
 const screenHeightScale = 0.95
 
 func New(niriState *niri.State, niriSocket niri.Socket, queueUpdate func()) *Instance {
-
 	return &Instance{
 		id:          uintptr(rand.Uint64()),
 		queueUpdate: queueUpdate,
@@ -69,16 +71,19 @@ func New(niriState *niri.State, niriSocket niri.Socket, queueUpdate func()) *Ins
 }
 
 func (i *Instance) Preinit(root *gtk.Container) error {
+	i.mu.Lock()
+	defer i.mu.Unlock()
+
 	root.SetProperty("name", strconv.FormatUint(uint64(i.id), 16))
 	style, err := root.GetStyleContext()
 	if err != nil {
-		return fmt.Errorf("wbcffi: error getting style context: %s", err)
+		return fmt.Errorf("error getting style context: %s", err)
 	}
 	style.AddClass("cffi-niri-windows")
 
 	box, err := gtk.BoxNew(gtk.ORIENTATION_HORIZONTAL, 1)
 	if err != nil {
-		return fmt.Errorf("wbcffi: error creating box: %s", err)
+		return fmt.Errorf("error creating box: %s", err)
 	}
 	root.Add(box)
 	i.box = box
@@ -87,54 +92,65 @@ func (i *Instance) Preinit(root *gtk.Container) error {
 }
 
 func (i *Instance) ApplyConfig(key, value string) error {
+	i.mu.Lock()
+	defer i.mu.Unlock()
+
 	switch key {
 	case "rules":
 		var rules []WindowRuleConfig
 		err := json.Unmarshal([]byte(value), &rules)
 		if err != nil {
-			return fmt.Errorf("wbcffi: error unmarshaling rules: %w", err)
+			return fmt.Errorf("error unmarshaling rules: %w", err)
 		}
-		i.WindowRules = make([]WindowRule, len(rules))
+		i.windowRules = make([]WindowRule, len(rules))
 		for idx, rule := range rules {
 			if rule.AppId != "" {
-				i.WindowRules[idx].AppId, err = regexp.Compile(rule.AppId)
+				i.windowRules[idx].AppId, err = regexp.Compile(rule.AppId)
 				if err != nil {
-					return fmt.Errorf("wbcffi: error compiling regex: %w", err)
+					return fmt.Errorf("error compiling regex: %w", err)
 				}
 			}
 			if rule.Title != "" {
-				i.WindowRules[idx].Title, err = regexp.Compile(rule.Title)
+				i.windowRules[idx].Title, err = regexp.Compile(rule.Title)
 				if err != nil {
-					return fmt.Errorf("wbcffi: error compiling regex: %w", err)
+					return fmt.Errorf("error compiling regex: %w", err)
 				}
 			}
-			i.WindowRules[idx].Class = rule.Class
-			i.WindowRules[idx].Continue = rule.Continue
+			i.windowRules[idx].Class = rule.Class
+			i.windowRules[idx].Continue = rule.Continue
 		}
 	case "module_path", "actions":
 		// ignore
 	default:
-		return fmt.Errorf("wbcffi: unknown config key: %s", key)
+		return fmt.Errorf("unknown config key: %s", key)
 	}
 	return nil
 }
 
 func (i *Instance) Init(monitor string, screenWidth, screenHeight int) {
+	i.mu.Lock()
 	i.monitor = monitor
 	i.screenWidth = screenWidth
 	i.screenHeight = screenHeight
 	i.ready = true
+	i.mu.Unlock()
 
 	i.Notify()
 	i.niriState.OnUpdate(uint64(i.id), func(state *niri.State) { i.Notify() })
 }
 
 func (i *Instance) Deinit() {
+	i.mu.Lock()
+	defer i.mu.Unlock()
+
 	i.niriState.RemoveOnUpdate(uint64(i.id))
 	i.ready = false
 }
 
 func (i *Instance) Notify() {
+	i.mu.RLock()
+	defer i.mu.RUnlock()
+
 	if !i.ready {
 		return
 	}
@@ -142,6 +158,9 @@ func (i *Instance) Notify() {
 }
 
 func (i *Instance) Update() {
+	i.mu.RLock()
+	defer i.mu.RUnlock()
+
 	if !i.ready {
 		return
 	}
@@ -247,6 +266,8 @@ func (i *Instance) Update() {
 }
 
 func (i *Instance) calculateWindowSizes(column []*niri.Window, scale float64, maxHeight int) (windowHeights []int, width int) {
+	// called when read-lock is held, no need to re-lock
+
 	if len(column) == 1 {
 		screenHeight := float64(i.screenHeight) * screenHeightScale
 		height := min(
@@ -311,6 +332,13 @@ func (i *Instance) Refresh(signal int) {
 }
 
 func (i *Instance) DoAction(actionName string) {
+	i.mu.RLock()
+	defer i.mu.RUnlock()
+
+	if !i.ready {
+		return
+	}
+
 	request := map[string]any{
 		"Action": map[string]any{
 			actionName: map[string]any{},
