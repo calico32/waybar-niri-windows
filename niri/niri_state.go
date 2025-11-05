@@ -1,12 +1,10 @@
 package niri
 
 import (
-	"fmt"
-	"log"
-	"os"
 	"slices"
 	"strings"
 	"sync"
+	"wnw/log"
 )
 
 const None = uint64(0xffffffffffffffff)
@@ -49,15 +47,23 @@ func (s *State) RemoveOnUpdate(id uint64) {
 
 func (s *State) Update(event Event) {
 	defer func() {
+		s.mu.RLock()
+		defer s.mu.RUnlock()
+		callbacks := make([]func(*State), 0, len(s.onUpdate))
 		for _, f := range s.onUpdate {
-			f(s)
+			callbacks = append(callbacks, f)
 		}
+		defer func() {
+			for _, f := range callbacks {
+				f(s)
+			}
+		}()
 	}()
 
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	// fmt.Fprintf(os.Stderr, "Received event: %T\n", event)
+	log.Tracef("received event: %T", event)
 	s.needsRedraw = false
 	switch event := event.(type) {
 	case *WorkspacesChanged:
@@ -65,33 +71,38 @@ func (s *State) Update(event Event) {
 		for _, wk := range event.Workspaces {
 			s.workspaces[wk.Id] = wk
 			if wk.IsFocused && wk.Id != s.currentWorkspaceId {
-				// fmt.Fprintf(os.Stderr, "  Newly focused workspace: %d\n", wk.Id)
+				log.Tracef("  newly focused workspace: %d", wk.Id)
 				s.currentWorkspaceId = wk.Id
 				s.needsRedraw = true
 			}
 		}
 	case *WindowOpenedOrChanged:
 		s.needsRedraw = true
-		s.windows[event.Window.Id] = &event.Window
-		if event.Window.IsFocused && event.Window.Id != s.currentWindowId {
-			// fmt.Fprintf(os.Stderr, "  Newly focused window: %d\n", event.Window.Id)
+		window := event.Window
+		s.windows[window.Id] = &window
+		if window.IsFocused && window.Id != s.currentWindowId {
+			log.Tracef("  newly focused window: %d", event.Window.Id)
 			for _, window := range s.windows {
 				window.IsFocused = false
 			}
-			event.Window.IsFocused = true
-			s.currentWindowId = event.Window.Id
+			window.IsFocused = true
+			s.currentWindowId = window.Id
 			s.needsRedraw = true
 		}
 	case *WorkspaceActivated:
 		s.needsRedraw = true
-		wk := s.workspaces[event.Id]
+		wk, ok := s.workspaces[event.Id]
+		if !ok {
+			log.Errorf("workspace %d not found", event.Id)
+			return
+		}
 		if wk.Output == nil {
-			log.Printf("wbcffi: workspace %d has no output", wk.Id)
+			log.Errorf("workspace %d has no output", wk.Id)
 			return
 		}
 		for _, workspace := range s.workspaces {
 			if workspace.Output == nil {
-				log.Printf("wbcffi: workspace %d has no output", workspace.Id)
+				log.Errorf("workspace %d has no output", workspace.Id)
 				continue
 			}
 			if *wk.Output == *workspace.Output {
@@ -100,7 +111,7 @@ func (s *State) Update(event Event) {
 		}
 		wk.IsActive = true
 		if event.Focused {
-			// fmt.Fprintf(os.Stderr, "  Workspace activated and focused: %d\n", event.Id)
+			log.Tracef("  workspace activated and focused: %d", event.Id)
 			for _, wk := range s.workspaces {
 				wk.IsFocused = false
 			}
@@ -110,7 +121,7 @@ func (s *State) Update(event Event) {
 	case *WindowFocusChanged:
 		s.needsRedraw = true
 		if event.Id != nil {
-			// fmt.Fprintf(os.Stderr, "  Window focus changed: %d -> %d\n", s.CurrentWindowId, *event.Id)
+			log.Tracef("  window focus changed: %d -> %d", s.currentWindowId, *event.Id)
 			// unset focus for all windows
 			for _, window := range s.windows {
 				window.IsFocused = false
@@ -120,11 +131,11 @@ func (s *State) Update(event Event) {
 				s.currentWindowId = *event.Id
 				window.IsFocused = true
 			} else {
-				fmt.Fprintf(os.Stderr, "Warning: focused window %d not found in state\n", s.currentWindowId)
+				log.Warnf("focused window %d not found in state", s.currentWindowId)
 			}
 		} else {
 			s.currentWindowId = None
-			// fmt.Fprintf(os.Stderr, "  Window focus changed: %d -> None\n", s.CurrentWindowId)
+			log.Tracef("  window focus changed: %d -> None", s.currentWindowId)
 			for _, window := range s.windows {
 				window.IsFocused = false
 			}
@@ -132,7 +143,7 @@ func (s *State) Update(event Event) {
 	case *WindowClosed:
 		delete(s.windows, event.Id)
 		if s.currentWindowId == event.Id {
-			// fmt.Fprintf(os.Stderr, "  Focused window closed: %d\n", event.Id)
+			log.Tracef("  focused window closed: %d", event.Id)
 			s.needsRedraw = true
 			s.currentWindowId = None
 		}
@@ -142,16 +153,17 @@ func (s *State) Update(event Event) {
 			window := s.windows[change.Id]
 			window.Layout = change.WindowLayout
 			if window.WorkspaceId != nil && *window.WorkspaceId == s.currentWorkspaceId {
-				// fmt.Fprintf(os.Stderr, "  Window layout on current workspace changed: %d\n", change.Id)
+				log.Tracef("  window layout on current workspace changed: %d", change.Id)
 				s.needsRedraw = true
 			}
 		}
 	case *WindowsChanged:
 		s.needsRedraw = true
 		for _, window := range event.Windows {
-			s.windows[window.Id] = &window
+			w := window
+			s.windows[window.Id] = &w
 			if window.IsFocused && window.Id != s.currentWindowId {
-				// fmt.Fprintf(os.Stderr, "  Newly focused window: %d\n", window.Id)
+				log.Tracef("  newly focused window: %d", window.Id)
 				s.currentWindowId = window.Id
 			}
 		}
@@ -168,11 +180,11 @@ func (s *State) Update(event Event) {
 			s.needsRedraw = true
 		}
 	default:
-		// fmt.Fprintf(os.Stderr, "Ignoring event: %T\n", event)
+		log.Tracef("ignoring event: %T\n", event)
 		return
 	}
 
-	// fmt.Fprintf(os.Stderr, "Processed event: %T\n", event)
+	log.Tracef("processed event: %T\n", event)
 }
 
 const urgentBegin = "<span color=\"#fb2c36\">"
@@ -190,9 +202,13 @@ func (s *State) Draw(monitor string, symbols Symbols) string {
 	defer s.mu.RUnlock()
 
 	if monitor == "" {
-		currentOutput := s.workspaces[s.currentWorkspaceId].Output
-		if currentOutput != nil {
-			monitor = *currentOutput
+		workspace, ok := s.workspaces[s.currentWorkspaceId]
+		if !ok {
+			log.Errorf("current workspace %d has no output", s.currentWorkspaceId)
+			return "couldn't determine monitor"
+		}
+		if workspace.Output != nil {
+			monitor = *workspace.Output
 		}
 	}
 
@@ -213,7 +229,7 @@ func (s *State) Draw(monitor string, symbols Symbols) string {
 
 	focusedColumn := -1
 	maxColumn := -1
-	urgentColumns := make([]bool, len(s.windows))
+	urgentColumns := make(map[int]bool)
 	focusedFloating := uint64(0)
 	floatingWindows := make([]*Window, 0, len(s.windows))
 	for _, window := range s.windows {
@@ -246,7 +262,7 @@ func (s *State) Draw(monitor string, symbols Symbols) string {
 
 	var output strings.Builder
 	for i := 1; i <= int(maxColumn); i++ {
-		if i < len(urgentColumns) && urgentColumns[i] {
+		if urgentColumns[i] {
 			output.WriteString(urgentBegin)
 		}
 		if focusedColumn == i {
@@ -254,7 +270,7 @@ func (s *State) Draw(monitor string, symbols Symbols) string {
 		} else {
 			output.WriteString(symbols.Unfocused)
 		}
-		if i < len(urgentColumns) && urgentColumns[i] {
+		if urgentColumns[i] {
 			output.WriteString(urgentEnd)
 		}
 	}
@@ -279,14 +295,14 @@ func (s *State) Windows(monitor string) (tiled []*Window, floating []*Window) {
 	defer s.mu.RUnlock()
 
 	if monitor == "" {
-		currentOutput := s.workspaces[s.currentWorkspaceId].Output
-		if currentOutput != nil {
-			monitor = *currentOutput
+		workspace, ok := s.workspaces[s.currentWorkspaceId]
+		if !ok {
+			log.Errorf("current workspace %d has no output", s.currentWorkspaceId)
+			return nil, nil
 		}
-	}
-
-	if monitor == "" {
-		return nil, nil
+		if workspace.Output != nil {
+			monitor = *workspace.Output
+		}
 	}
 
 	targetWorkspaceId := None

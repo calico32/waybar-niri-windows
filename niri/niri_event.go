@@ -2,7 +2,6 @@ package niri
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 )
 
@@ -150,9 +149,6 @@ type WindowLayoutChange struct {
 }
 
 func (w *WindowLayoutChange) UnmarshalJSON(data []byte) error {
-	if w == nil {
-		return errors.New("cannot unmarshal into nil pointer")
-	}
 	var arr []json.RawMessage
 	if err := json.Unmarshal(data, &arr); err != nil {
 		return err
@@ -190,7 +186,7 @@ type KeyboardLayoutsChanged struct {
 // The keyboard layout switched.
 type KeyboardLayoutSwitched struct {
 	// Index of the newly active layout.
-	Id uint8 `json:"idx"`
+	Idx uint8 `json:"idx"`
 }
 
 // The overview was opened or closed.

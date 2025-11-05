@@ -3,13 +3,12 @@ package module
 import (
 	"encoding/json"
 	"fmt"
-	"log"
 	"math"
 	"math/rand/v2"
-	"net"
 	"regexp"
 	"slices"
 	"strconv"
+	"wnw/log"
 	"wnw/niri"
 
 	"github.com/gotk3/gotk3/gdk"
@@ -17,17 +16,21 @@ import (
 )
 
 type Instance struct {
-	Id           uintptr
+	id           uintptr
 	queueUpdate  func()
 	box          *gtk.Box
-	Monitor      string
-	Ready        bool
+	monitor      string
+	ready        bool
 	niriState    *niri.State
-	niriSocket   net.Conn
+	niriSocket   niri.Socket
 	symbols      niri.Symbols
-	ScreenHeight int
-	ScreenWidth  int
+	screenHeight int
+	screenWidth  int
 	WindowRules  []WindowRule
+}
+
+func (i *Instance) Id() uintptr {
+	return i.id
 }
 
 type WindowRuleConfig struct {
@@ -49,15 +52,10 @@ type WindowRule struct {
 // see https://github.com/YaLTeR/niri/issues/2381
 const screenHeightScale = 0.95
 
-func New(niriState *niri.State, niriSocket net.Conn, queueUpdate func()) *Instance {
-	var id uintptr
-	for id == 0 {
-		// for the very slim chance that id is null, generate a new one
-		id = uintptr(rand.Uint64())
-	}
+func New(niriState *niri.State, niriSocket niri.Socket, queueUpdate func()) *Instance {
 
-	i := &Instance{
-		Id:          id,
+	return &Instance{
+		id:          uintptr(rand.Uint64()),
 		queueUpdate: queueUpdate,
 		niriState:   niriState,
 		niriSocket:  niriSocket,
@@ -68,12 +66,10 @@ func New(niriState *niri.State, niriSocket net.Conn, queueUpdate func()) *Instan
 			FocusedFloating:   "⊛",
 		},
 	}
-
-	return i
 }
 
 func (i *Instance) Preinit(root *gtk.Container) error {
-	root.SetProperty("name", strconv.FormatUint(uint64(i.Id), 16))
+	root.SetProperty("name", strconv.FormatUint(uint64(i.id), 16))
 	style, err := root.GetStyleContext()
 	if err != nil {
 		return fmt.Errorf("wbcffi: error getting style context: %s", err)
@@ -100,13 +96,17 @@ func (i *Instance) ApplyConfig(key, value string) error {
 		}
 		i.WindowRules = make([]WindowRule, len(rules))
 		for idx, rule := range rules {
-			i.WindowRules[idx].AppId, err = regexp.Compile(rule.AppId)
-			if err != nil {
-				return fmt.Errorf("wbcffi: error compiling regex: %w", err)
+			if rule.AppId != "" {
+				i.WindowRules[idx].AppId, err = regexp.Compile(rule.AppId)
+				if err != nil {
+					return fmt.Errorf("wbcffi: error compiling regex: %w", err)
+				}
 			}
-			i.WindowRules[idx].Title, err = regexp.Compile(rule.Title)
-			if err != nil {
-				return fmt.Errorf("wbcffi: error compiling regex: %w", err)
+			if rule.Title != "" {
+				i.WindowRules[idx].Title, err = regexp.Compile(rule.Title)
+				if err != nil {
+					return fmt.Errorf("wbcffi: error compiling regex: %w", err)
+				}
 			}
 			i.WindowRules[idx].Class = rule.Class
 			i.WindowRules[idx].Continue = rule.Continue
@@ -119,28 +119,30 @@ func (i *Instance) ApplyConfig(key, value string) error {
 	return nil
 }
 
-func (i *Instance) Init() {
-	if !i.Ready {
-		return
-	}
+func (i *Instance) Init(monitor string, screenWidth, screenHeight int) {
+	i.monitor = monitor
+	i.screenWidth = screenWidth
+	i.screenHeight = screenHeight
+	i.ready = true
 
 	i.Notify()
-	i.niriState.OnUpdate(uint64(i.Id), func(state *niri.State) { i.Notify() })
+	i.niriState.OnUpdate(uint64(i.id), func(state *niri.State) { i.Notify() })
 }
 
 func (i *Instance) Deinit() {
-	i.niriState.RemoveOnUpdate(uint64(i.Id))
+	i.niriState.RemoveOnUpdate(uint64(i.id))
+	i.ready = false
 }
 
 func (i *Instance) Notify() {
-	if !i.Ready {
+	if !i.ready {
 		return
 	}
 	i.queueUpdate()
 }
 
 func (i *Instance) Update() {
-	if !i.Ready {
+	if !i.ready {
 		return
 	}
 
@@ -148,13 +150,13 @@ func (i *Instance) Update() {
 		child.(*gtk.Widget).Destroy()
 	})
 
-	tiled, floating := i.niriState.Windows(i.Monitor)
+	tiled, floating := i.niriState.Windows(i.monitor)
 	if len(tiled) == 0 && len(floating) == 0 {
 		return
 	}
 
-	maxTotalWindowHeight := i.box.GetAllocatedHeight()
-	scale := float64(maxTotalWindowHeight) / float64(i.ScreenHeight)
+	maxHeight := i.box.GetAllocatedHeight()
+	scale := float64(maxHeight) / float64(i.screenHeight)
 
 	columns := groupBy(tiled, func(w *niri.Window) uint32 {
 		return w.Layout.PosInScrollingLayout.X
@@ -169,63 +171,7 @@ func (i *Instance) Update() {
 		colStyle.AddClass("column")
 		i.box.Add(colBox)
 
-		var width int
-		var windowHeights []int
-		var totalTileHeight float64
-		for _, window := range column {
-			width = int(window.Layout.TileSize.X * scale)
-			totalTileHeight += window.Layout.TileSize.Y
-		}
-		if len(column) == 1 {
-			screenHeight := float64(i.ScreenHeight) * screenHeightScale
-			height := min(
-				int(math.Round(float64(column[0].Layout.TileSize.Y)/screenHeight*float64(maxTotalWindowHeight))),
-				maxTotalWindowHeight,
-			)
-			windowHeights = append(windowHeights, int(height))
-		} else {
-			totalWindowHeight := 0
-			maxTotalWindowHeight = maxTotalWindowHeight - (len(column) - 1) // remove 1 pixel between each window
-			for _, window := range column {
-				height := max(
-					int(math.Round(float64(maxTotalWindowHeight)*(window.Layout.TileSize.Y/totalTileHeight))),
-					1, // minimum height enforced by GTK is 1
-				)
-				totalWindowHeight += height
-				windowHeights = append(windowHeights, height)
-			}
-			leftoverHeight := maxTotalWindowHeight - totalWindowHeight
-			idx := 0
-			for leftoverHeight > 0 {
-				windowHeights[idx]++
-				leftoverHeight--
-				idx++
-				if idx >= len(windowHeights) {
-					idx = 0
-				}
-			}
-			for leftoverHeight < 0 {
-				iterations := 0
-				for leftoverHeight < 0 {
-					if windowHeights[idx] > 1 {
-						windowHeights[idx]--
-						leftoverHeight++
-					} else {
-						iterations++
-					}
-					if iterations > 100 {
-						// bar must be too small to fit all windows, we'll try removing one
-						windowHeights = windowHeights[:len(windowHeights)-1]
-						leftoverHeight++ // account for removed gap
-						break
-					}
-					idx++
-					if idx >= len(windowHeights) {
-						idx = 0
-					}
-				}
-			}
-		}
+		windowHeights, width := i.calculateWindowSizes(column, scale, maxHeight)
 
 		for idx, window := range column {
 			if idx > len(windowHeights)-1 {
@@ -270,7 +216,6 @@ func (i *Instance) Update() {
 
 			windowBox.Connect("button-press-event", func(obj *gtk.EventBox, event *gdk.Event) {
 				eventButton := gdk.EventButtonNewFromEvent(event)
-				eventButton.Button()
 				var request map[string]any
 				switch eventButton.Button() {
 				case gdk.BUTTON_PRIMARY:
@@ -279,24 +224,18 @@ func (i *Instance) Update() {
 							"FocusWindow": map[string]any{"id": window.Id},
 						},
 					}
-				// case gdk.BUTTON_SECONDARY:
-				// 	request = map[string]any{
-				// 		"Action": map[string]any{
-				// 			"CloseWindow": map[string]any{"id": window.Id},
-				// 		},
-				// 	}
 				case gdk.BUTTON_MIDDLE:
 					request = map[string]any{
 						"Action": map[string]any{
-							"ToggleOverview": map[string]any{},
+							"CloseWindow": map[string]any{"id": window.Id},
 						},
 					}
 				}
 
-				b, _ := json.Marshal(request)
-				log.Printf("wbcffi: niri <- %s", b)
-				i.niriSocket.Write(b)
-				i.niriSocket.Write([]byte("\n"))
+				err := i.niriSocket.Request(request)
+				if err != nil {
+					log.Errorf("error sending action: %s", err)
+				}
 			})
 
 			colBox.Add(windowBox)
@@ -304,9 +243,72 @@ func (i *Instance) Update() {
 	}
 
 	i.box.ShowAll()
+
 }
 
-func (i *Instance) Refresh(signal int) {}
+func (i *Instance) calculateWindowSizes(column []*niri.Window, scale float64, maxHeight int) (windowHeights []int, width int) {
+	if len(column) == 1 {
+		screenHeight := float64(i.screenHeight) * screenHeightScale
+		height := min(
+			int(math.Round(float64(column[0].Layout.TileSize.Y)/screenHeight*float64(maxHeight))),
+			maxHeight,
+		)
+		return []int{height}, int(column[0].Layout.TileSize.X * scale)
+	}
+
+	var totalTileHeight float64
+	for _, window := range column {
+		width = int(window.Layout.TileSize.X * scale)
+		totalTileHeight += window.Layout.TileSize.Y
+	}
+	totalWindowHeight := 0
+	maxHeight = maxHeight - (len(column) - 1) // remove 1 pixel between each window
+	for _, window := range column {
+		height := max(
+			int(math.Round(float64(maxHeight)*(window.Layout.TileSize.Y/totalTileHeight))),
+			1, // minimum height enforced by GTK is 1
+		)
+		totalWindowHeight += height
+		windowHeights = append(windowHeights, height)
+	}
+	leftoverHeight := maxHeight - totalWindowHeight
+	idx := 0
+	for leftoverHeight > 0 {
+		windowHeights[idx]++
+		leftoverHeight--
+		for leftoverHeight < 0 {
+			iterations := 0
+			for leftoverHeight < 0 {
+				if windowHeights[idx] > 1 {
+					windowHeights[idx]--
+					leftoverHeight++
+				} else {
+					iterations++
+				}
+				if iterations > 100 {
+					// bar must be too small to fit all windows, we'll try removing one.
+
+					// this is an extremely rare case - even a bar 24px tall
+					// can accomodate 12 windows in one column, more than
+					// anyone would probably ever have.
+					log.Warnf("bar too small, dropping window from display (column has %d windows)", len(windowHeights))
+					windowHeights = windowHeights[:len(windowHeights)-1]
+					leftoverHeight++ // account for removed gap
+					break
+				}
+				idx++
+				if idx >= len(windowHeights) {
+					idx = 0
+				}
+			}
+		}
+	}
+	return windowHeights, width
+}
+
+func (i *Instance) Refresh(signal int) {
+	// we don't respond to signals
+}
 
 func (i *Instance) DoAction(actionName string) {
 	request := map[string]any{
@@ -314,14 +316,10 @@ func (i *Instance) DoAction(actionName string) {
 			actionName: map[string]any{},
 		},
 	}
-	b, err := json.Marshal(request)
+	err := i.niriSocket.Request(request)
 	if err != nil {
-		log.Printf("wbcffi: error marshaling request: %s", err)
-		return
+		log.Errorf("error sending action: %s", err)
 	}
-	log.Printf("wbcffi: niri <- %s", b)
-	i.niriSocket.Write(b)
-	i.niriSocket.Write([]byte("\n"))
 }
 
 func groupBy[T any, K comparable](list []T, key func(T) K) [][]T {

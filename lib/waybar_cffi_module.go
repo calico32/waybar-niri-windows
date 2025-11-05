@@ -2,13 +2,10 @@ package lib
 
 import (
 	"fmt"
-	"io"
-	"log"
-	"net"
-	"os"
-	"strconv"
 	"time"
 	"unsafe"
+	"wnw/lib/state"
+	"wnw/log"
 	"wnw/module"
 	"wnw/niri"
 
@@ -33,107 +30,105 @@ static inline void QueueUpdate(void (*queue_update)(wbcffi_module *), wbcffi_mod
 */
 import "C"
 
-var logOutput = io.Discard
-
-var instances = make(map[uintptr]*module.Instance)
-var niriState *niri.State
-var niriSocket net.Conn
-
-func initError(format string, args ...any) {
-	log.SetOutput(os.Stderr)
-	log.Printf("wbcffi: error initializing module: %s", fmt.Sprintf(format, args...))
-	log.SetOutput(logOutput)
-}
+var global = state.New()
 
 //export wbcffi_init
 func wbcffi_init(init_info *C.wbcffi_init_info_t,
 	config_entries *C.wbcffi_config_entry_t,
 	config_entries_len C.size_t) unsafe.Pointer {
 
-	log.SetOutput(logOutput)
-
-	if niriState == nil {
-		var err error
-		log.Printf("wbcffi: connecting to niri socket")
-		niriState, niriSocket, err = niri.Init()
-		if err != nil {
-			initError("connecting to niri socket: %s", err)
-			return nil
+	global.Locked(func(g *state.State) {
+		if global.GetNiriState() == nil {
+			var err error
+			log.Debugf("connecting to niri socket")
+			niriState, niriSocket, err := niri.Init()
+			if err != nil {
+				log.Errorf("connecting to niri socket: %s", err)
+				return
+			}
+			global.SetNiriState(niriState)
+			global.SetNiriSocket(niriSocket)
 		}
+	})
+
+	if global.GetNiriState() == nil {
+		// niri didn't connect (error already logged above), exit
+		return nil
 	}
 
 	queueUpdate := init_info.queue_update
 	waybarModule := init_info.obj
 
-	i := module.New(niriState, niriSocket, func() {
+	i := module.New(global.GetNiriState(), global.GetNiriSocket(), func() {
 		C.QueueUpdate(queueUpdate, waybarModule)
 	})
-	instances[i.Id] = i
+	global.AddInstance(i)
+	id := i.Id()
 
 	root := wrapContainer(C.GetRootWidget(init_info.get_root_widget, init_info.obj))
 
 	err := i.Preinit(root)
 	if err != nil {
-		log.Print(err)
+		global.RemoveInstance(id)
+		log.Errorf("preinit: %s", err)
 		return nil
 	}
 
 	root.Connect("realize", func(obj *glib.Object) {
-		// widget is realized, so we can get the monitor
-		i, err := getInstanceFromGObject(obj)
-		if err != nil {
-			log.Println(err)
-			return
-		}
-
 		go func() {
 			// let waybar settle
 			time.Sleep(time.Millisecond * 100)
-
-			root := gtk.Widget{glib.InitiallyUnowned{obj}}
-			i.Monitor, i.ScreenWidth, i.ScreenHeight, err = getMonitorInfo(&root)
-			if err != nil {
-				log.Println(err)
+			i := global.GetInstance(id)
+			if i == nil {
+				log.Errorf("realize: instance %x not found", id)
 				return
 			}
 
-			log.Printf("wbcffi: got monitor! id=%x name=%s\n", i.Id, i.Monitor)
-			i.Ready = true
-			i.Init()
+			root := gtk.Widget{glib.InitiallyUnowned{obj}}
+			monitor, screenWidth, screenHeight, err := getMonitorInfo(&root)
+			if err != nil {
+				log.Errorf("realize: %s", err)
+				return
+			}
+
+			log.Debugf("got monitor! id=%x name=%s", id, monitor)
+			i.Init(monitor, screenWidth, screenHeight)
 		}()
 	})
 
-	log.Printf("wbcffi: init from go! id=%x\n", i.Id)
+	log.Debugf("init from go! id=%x", id)
 	for _, entry := range unsafe.Slice(config_entries, config_entries_len) {
 		key, value := C.GoString(entry.key), C.GoString(entry.value)
-		log.Printf("wbcffi: config %s = %s", key, value)
+		log.Tracef("config %s = %s", key, value)
 		err := i.ApplyConfig(key, value)
 		if err != nil {
-			initError("%s config: %s", key, err)
+			global.RemoveInstance(id)
+			log.Errorf("%s config: %s", key, err)
 			return nil
 		}
 	}
 
-	return unsafe.Pointer(i.Id)
+	return unsafe.Pointer(id)
 }
 
 //export wbcffi_deinit
 func wbcffi_deinit(instanceId unsafe.Pointer) {
-	i, ok := instances[uintptr(instanceId)]
-	if !ok {
-		log.Printf("wbcffi: instance %x not found\n", instanceId)
+	log.Tracef("deinit id=%x", uintptr(instanceId))
+	i := global.GetInstance(uintptr(instanceId))
+	if i == nil {
+		log.Errorf("instance %x not found", instanceId)
 		return
 	}
-	log.Printf("wbcffi: deinit id=%x\n", uintptr(instanceId))
 	i.Deinit()
-	delete(instances, uintptr(instanceId))
+	global.RemoveInstance(uintptr(instanceId))
 }
 
 //export wbcffi_update
 func wbcffi_update(instanceId unsafe.Pointer) {
-	i, ok := instances[uintptr(instanceId)]
-	if !ok {
-		log.Printf("wbcffi: instance %x not found\n", instanceId)
+	log.Tracef("update id=%x", uintptr(instanceId))
+	i := global.GetInstance(uintptr(instanceId))
+	if i == nil {
+		log.Errorf("instance %x not found", instanceId)
 		return
 	}
 	i.Update()
@@ -141,10 +136,10 @@ func wbcffi_update(instanceId unsafe.Pointer) {
 
 //export wbcffi_refresh
 func wbcffi_refresh(instanceId unsafe.Pointer, signal C.int) {
-	log.Printf("wbcffi: refresh id=%x signal=%d\n", uintptr(instanceId), signal)
-	i, ok := instances[uintptr(instanceId)]
-	if !ok {
-		log.Printf("wbcffi: instance %x not found\n", instanceId)
+	log.Tracef("refresh id=%x signal=%d", uintptr(instanceId), signal)
+	i := global.GetInstance(uintptr(instanceId))
+	if i == nil {
+		log.Errorf("instance %x not found", instanceId)
 		return
 	}
 	i.Refresh(int(signal))
@@ -152,10 +147,10 @@ func wbcffi_refresh(instanceId unsafe.Pointer, signal C.int) {
 
 //export wbcffi_doaction
 func wbcffi_doaction(instanceId unsafe.Pointer, action_name *C.const_char_t) {
-	log.Printf("wbcffi: doaction id=%xx action_name=%s\n", uintptr(instanceId), C.GoString(action_name))
-	i, ok := instances[uintptr(instanceId)]
-	if !ok {
-		log.Printf("wbcffi: instance %x not found\n", instanceId)
+	log.Tracef("doaction id=%x action_name=%s", uintptr(instanceId), C.GoString(action_name))
+	i := global.GetInstance(uintptr(instanceId))
+	if i == nil {
+		log.Errorf("instance %x not found", instanceId)
 		return
 	}
 	i.DoAction(C.GoString(action_name))
@@ -173,18 +168,18 @@ func getMonitorInfo(w *gtk.Widget) (name string, width, height int, err error) {
 
 	toplevel, err := w.GetToplevel()
 	if err != nil {
-		err = fmt.Errorf("wbcffi: error getting toplevel: %s", err)
+		err = fmt.Errorf("error getting toplevel: %s", err)
 		return
 	}
 	window, ok := toplevel.(*gtk.Window)
 	if !ok {
-		err = fmt.Errorf("wbcffi: toplevel is not a window (is a %#T)", toplevel)
+		err = fmt.Errorf("toplevel is not a window (is a %#T)", toplevel)
 		return
 	}
 
 	gdkWindow, err := window.GetWindow()
 	if err != nil {
-		err = fmt.Errorf("wbcffi: error getting gdk window: %s", err)
+		err = fmt.Errorf("error getting gdk window: %s", err)
 		return
 	}
 
@@ -199,22 +194,4 @@ func getMonitorInfo(w *gtk.Widget) (name string, width, height int, err error) {
 	height = int(c_rectangle.height)
 
 	return
-}
-
-func getInstanceFromGObject(obj *glib.Object) (*module.Instance, error) {
-	instanceIdStr, err := obj.GetProperty("name")
-	if err != nil {
-		return nil, fmt.Errorf("wbcffi: error getting instance_id string: %s", err)
-	}
-	instanceId, err := strconv.ParseUint(instanceIdStr.(string), 16, 64)
-	if err != nil {
-		return nil, fmt.Errorf("wbcffi: error parsing instance_id: %s", err)
-	}
-
-	i, ok := instances[uintptr(instanceId)]
-	if !ok {
-		return nil, fmt.Errorf("wbcffi: instance %x not found", instanceId)
-	}
-
-	return i, nil
 }

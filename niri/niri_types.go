@@ -137,11 +137,10 @@ type KeyboardLayouts struct {
 type Numeric interface {
 	~int | ~int8 | ~int16 | ~int32 | ~int64 |
 		~uint | ~uint8 | ~uint16 | ~uint32 | ~uint64 |
-		~float32 | ~float64 |
-		~complex64 | ~complex128
+		~float32 | ~float64
 }
 
-// Vec2 is a 2D vector with generic types for its components. It c.an be
+// Vec2 is a 2D vector with generic types for its components. It can be
 // marshaled to JSON as a 2-element array.
 type Vec2[T Numeric] struct {
 	// X component of the vector.
@@ -174,9 +173,3 @@ func (v *Vec2[T]) First() T { return v.X }
 
 // Second is an alias for [Vec2.Y].
 func (v *Vec2[T]) Second() T { return v.Y }
-
-// Left is an alias for [Vec2.X].
-func (v *Vec2[T]) Left() T { return v.X }
-
-// Right is an alias for [Vec2.Y].
-func (v *Vec2[T]) Right() T { return v.Y }

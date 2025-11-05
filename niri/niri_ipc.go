@@ -6,43 +6,42 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"log"
 	"net"
 	"os"
 	"reflect"
+	"wnw/log"
 )
 
-func Init() (*State, net.Conn, error) {
-	socket := os.Getenv("NIRI_SOCKET")
-	if socket == "" {
-		return nil, nil, fmt.Errorf("NIRI_SOCKET not set")
+type Socket struct {
+	conn net.Conn
+}
+
+func (s *Socket) Request(j map[string]any) error {
+	if s.conn == nil {
+		return fmt.Errorf("socket is nil")
 	}
-	eventSocket, err := net.Dial("unix", socket)
+	b, err := json.Marshal(j)
 	if err != nil {
-		return nil, nil, fmt.Errorf("error connecting to NIRI_SOCKET: %w", err)
+		return fmt.Errorf("error marshaling request: %w", err)
 	}
-
-	// Can't send actions if we're listening to the EventStream, so we need a
-	// separate socket for actions.
-	niriSocket, err := net.Dial("unix", socket)
-	if err != nil {
-		return nil, nil, fmt.Errorf("error connecting to NIRI_SOCKET: %w", err)
+	log.Debugf("niri <- %s", b)
+	b = append(b, '\n')
+	if _, err := s.conn.Write(b); err != nil {
+		return fmt.Errorf("error writing to niri socket: %w", err)
 	}
+	return nil
+}
 
-	niriState := NewNiriState()
-
-	go listen(eventSocket, niriState)
-
-	// log messages on the action socket
+func (s *Socket) logMessages() {
 	go func() {
-		b := bufio.NewReader(niriSocket)
+		b := bufio.NewReader(s.conn)
 		for {
 			line, err := b.ReadString('\n')
 			if err != nil {
 				if errors.Is(err, io.EOF) {
-					log.Println("wbcffi: niri connection closed")
+					log.Debugf("niri connection closed")
 				} else {
-					log.Printf("wbcffi: error reading from niri socket: %s", err)
+					log.Debugf("error reading from niri socket: %s", err)
 				}
 				return
 			}
@@ -52,24 +51,54 @@ func Init() (*State, net.Conn, error) {
 				continue
 			}
 
-			log.Printf("wbcffi: niri   -> %s", line)
+			log.Debugf("niri   -> %s", line)
 		}
 	}()
+}
 
-	return niriState, niriSocket, nil
+func Init() (state *State, socket Socket, err error) {
+	socketAddr := os.Getenv("NIRI_SOCKET")
+	if socketAddr == "" {
+		err = fmt.Errorf("NIRI_SOCKET not set")
+		return
+	}
+
+	eventSocket, err := net.Dial("unix", socketAddr)
+	if err != nil {
+		err = fmt.Errorf("error connecting to NIRI_SOCKET: %w", err)
+		return
+	}
+
+	// Can't send actions if we're listening to the EventStream, so we need a
+	// separate socket for actions.
+	requestSocket, err := net.Dial("unix", socketAddr)
+	if err != nil {
+		eventSocket.Close() // close the other socket
+		err = fmt.Errorf("error connecting to NIRI_SOCKET: %w", err)
+		return
+	}
+	socket = Socket{requestSocket}
+	socket.logMessages()
+	state = NewNiriState()
+	go listen(eventSocket, state)
+
+	return
 }
 
 func listen(socket net.Conn, state *State) {
 	defer socket.Close()
-	socket.Write([]byte("\"EventStream\"\n"))
+	if _, err := socket.Write([]byte("\"EventStream\"\n")); err != nil {
+		log.Errorf("error writing to niri socket: %s", err)
+		return
+	}
 	b := bufio.NewReader(socket)
 	for {
 		line, err := b.ReadString('\n')
 		if err != nil {
 			if errors.Is(err, io.EOF) {
-				log.Println("wbcffi: niri connection closed")
+				log.Errorf("niri connection closed")
 			} else {
-				log.Printf("wbcffi: error reading from niri socket: %s", err)
+				log.Errorf("error reading from niri socket: %s", err)
 			}
 			return
 		}
@@ -82,7 +111,7 @@ func listen(socket net.Conn, state *State) {
 		niriEvent := new(NiriEvent)
 		err = json.Unmarshal([]byte(line), niriEvent)
 		if err != nil {
-			log.Printf("wbcffi: error unmarshaling niri event: %s", err)
+			log.Debugf("error unmarshaling niri event: %s", err)
 			continue
 		}
 		if niriEvent.Ok != nil {
@@ -90,18 +119,22 @@ func listen(socket net.Conn, state *State) {
 			continue
 		}
 		var event Event
+		var ok bool
 		// assign value of first non-nil field of niriEvent to event
 		for i := range reflect.TypeOf(niriEvent).Elem().NumField() {
 			field := reflect.ValueOf(niriEvent).Elem().Field(i)
 			if !field.IsNil() {
-				event = field.Interface().(Event)
+				event, ok = field.Interface().(Event)
+				if !ok {
+					panic("fields on niri.NiriEvent must implement niri.Event")
+				}
 				break
 			}
 		}
 		if event != nil {
 			state.Update(event)
 		} else {
-			log.Printf("wbcffi: received event with no fields set (unknown event type?)")
+			log.Warnf("received event with no fields set (unknown event type?)")
 		}
 	}
 }
