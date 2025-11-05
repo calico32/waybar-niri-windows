@@ -29,7 +29,8 @@ Add a CFFI module to your Waybar config (and add any niri actions you want to tr
 {
     "modules-left": ["cffi/niri-windows"],
     "cffi/niri-windows": {
-    "module_path": "/path/to/waybar-niri-windows.so",
+        // path where you placed the .so file
+        "module_path": "~/.config/waybar/waybar-niri-windows.so",
         // add CSS classes to windows based on their App ID/Title (see `niri msg windows`):
         "rules": [
             // Go regular expression syntax is supported (see https://pkg.go.dev/regexp/syntax)
