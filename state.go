@@ -146,13 +146,28 @@ func (s *NiriState) Redraw() {
 		return
 	}
 
+	workspaceId := s.CurrentWorkspaceId
+	if *outputName != "" {
+		workspaceId = None
+		for _, workspace := range s.Workspaces {
+			if workspace.Output != nil && workspace.IsFocused && *workspace.Output == *outputName {
+				workspaceId = workspace.Id
+				break
+			}
+		}
+	}
+	if workspaceId == None {
+		write("wnw: no workspace found!")
+		return
+	}
+
 	focusedColumn := -1
 	maxColumn := -1
 	urgentColumns := make([]bool, len(s.Windows))
 	focusedFloating := uint64(0)
 	floatingWindows := make([]*Window, 0, len(s.Windows))
 	for _, window := range s.Windows {
-		if window.WorkspaceId != nil && *window.WorkspaceId == s.CurrentWorkspaceId {
+		if window.WorkspaceId != nil && *window.WorkspaceId == workspaceId {
 			location := window.Layout.PosInScrollingLayout
 			if location != nil {
 				col := int(location.X)

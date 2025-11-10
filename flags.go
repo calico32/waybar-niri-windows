@@ -14,6 +14,7 @@ var unfocusedSymbol = flag.String("unfocused", "⋅", "Symbol for unfocused colu
 var focusedSymbol = flag.String("focused", "⊙", "Symbol for focused columns")
 var unfocusedFloatingSymbol = flag.String("unfocused-floating", "∗", "Symbol for unfocused floating windows")
 var focusedFloatingSymbol = flag.String("focused-floating", "⊛", "Symbol for focused floating windows")
+var outputName = flag.String("output", "", "The output (DP-1, HDMI-1, etc.) that this indicator is for")
 
 type boolFlag interface {
 	IsBoolFlag() bool
@@ -26,6 +27,7 @@ func init() {
 	getopt.Alias("f", "focused")
 	getopt.Alias("U", "unfocused-floating")
 	getopt.Alias("F", "focused-floating")
+	getopt.Alias("o", "output")
 	getopt.CommandLine.Usage = func() {}
 }
 
