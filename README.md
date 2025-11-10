@@ -19,7 +19,7 @@ If you'd like to build from source (or if your platform doesn't have a pre-built
 
 1. Install GTK 3 + development headers (`apt install libgtk-3-dev`, `pacman -S gtk3`, etc.).
 2. Clone this repository.
-3. Run `make` to produce `waybar-niri-windows.so`. This might take a while (thanks to cgo).
+3. Run `make waybar-niri-windows.so` to produce `waybar-niri-windows.so`. This might take a while (thanks to cgo).
 
 Move the library anywhere permanent, e.g. `~/.config/waybar`.
 
