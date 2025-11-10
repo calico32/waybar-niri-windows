@@ -150,7 +150,7 @@ func (s *NiriState) Redraw() {
 	if *outputName != "" {
 		workspaceId = None
 		for _, workspace := range s.Workspaces {
-			if workspace.Output != nil && workspace.IsFocused && *workspace.Output == *outputName {
+			if workspace.Output != nil && workspace.IsActive && *workspace.Output == *outputName {
 				workspaceId = workspace.Id
 				break
 			}
