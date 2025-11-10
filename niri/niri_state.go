@@ -197,7 +197,7 @@ type Symbols struct {
 	FocusedFloating   string `json:"focused-floating"`
 }
 
-func (s *State) Draw(monitor string, symbols Symbols) string {
+func (s *State) Text(monitor string, symbols Symbols) string {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 

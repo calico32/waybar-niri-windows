@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"math"
 	"math/rand/v2"
-	"regexp"
 	"slices"
 	"strconv"
 	"sync"
@@ -21,33 +20,19 @@ type Instance struct {
 	id           uintptr
 	queueUpdate  func()
 	box          *gtk.Box
+	label        *gtk.Label // only set in text mode
 	monitor      string
 	ready        bool
 	niriState    *niri.State
 	niriSocket   niri.Socket
-	symbols      niri.Symbols
 	screenHeight int
 	screenWidth  int
-	windowRules  []WindowRule
+	config       Config
 }
 
 func (i *Instance) Id() uintptr {
 	// we never change the id, so we can just return it
 	return i.id
-}
-
-type WindowRuleConfig struct {
-	AppId    string `json:"app-id"`
-	Title    string `json:"title"`
-	Class    string `json:"class"`
-	Continue bool   `json:"continue"`
-}
-
-type WindowRule struct {
-	AppId    *regexp.Regexp
-	Title    *regexp.Regexp
-	Class    string
-	Continue bool
 }
 
 // assumes maximum "normal" window height is 95% of screen height
@@ -61,11 +46,15 @@ func New(niriState *niri.State, niriSocket niri.Socket, queueUpdate func()) *Ins
 		queueUpdate: queueUpdate,
 		niriState:   niriState,
 		niriSocket:  niriSocket,
-		symbols: niri.Symbols{
-			Unfocused:         "⋅",
-			Focused:           "⊙",
-			UnfocusedFloating: "∗",
-			FocusedFloating:   "⊛",
+		config: Config{
+			Mode: GraphicalMode,
+			Symbols: niri.Symbols{
+				Unfocused:         "⋅",
+				Focused:           "⊙",
+				UnfocusedFloating: "∗",
+				FocusedFloating:   "⊛",
+			},
+			WindowRules: []WindowRule{},
 		},
 	}
 }
@@ -96,29 +85,12 @@ func (i *Instance) ApplyConfig(key, value string) error {
 	defer i.mu.Unlock()
 
 	switch key {
-	case "rules":
-		var rules []WindowRuleConfig
-		err := json.Unmarshal([]byte(value), &rules)
+	case "config", "options":
+		err := json.Unmarshal([]byte(value), &i.config)
 		if err != nil {
-			return fmt.Errorf("error unmarshaling rules: %w", err)
+			return fmt.Errorf("error unmarshaling config: %w", err)
 		}
-		i.windowRules = make([]WindowRule, len(rules))
-		for idx, rule := range rules {
-			if rule.AppId != "" {
-				i.windowRules[idx].AppId, err = regexp.Compile(rule.AppId)
-				if err != nil {
-					return fmt.Errorf("error compiling regex: %w", err)
-				}
-			}
-			if rule.Title != "" {
-				i.windowRules[idx].Title, err = regexp.Compile(rule.Title)
-				if err != nil {
-					return fmt.Errorf("error compiling regex: %w", err)
-				}
-			}
-			i.windowRules[idx].Class = rule.Class
-			i.windowRules[idx].Continue = rule.Continue
-		}
+		log.Debugf("config: %#+v", i.config)
 	case "module_path", "actions":
 		// ignore
 	default:
@@ -133,6 +105,12 @@ func (i *Instance) Init(monitor string, screenWidth, screenHeight int) {
 	i.screenWidth = screenWidth
 	i.screenHeight = screenHeight
 	i.ready = true
+	if i.config.Mode == TextMode {
+		label, _ := gtk.LabelNew("")
+		i.box.Add(label)
+		i.box.ShowAll()
+		i.label = label
+	}
 	i.mu.Unlock()
 
 	i.Notify()
@@ -162,6 +140,12 @@ func (i *Instance) Update() {
 	defer i.mu.RUnlock()
 
 	if !i.ready {
+		return
+	}
+
+	if i.config.Mode == TextMode {
+		text := i.niriState.Text(i.monitor, i.config.Symbols)
+		i.label.SetText(text)
 		return
 	}
 
@@ -214,7 +198,7 @@ func (i *Instance) Update() {
 				windowBox.SetTooltipText(*window.AppId)
 			}
 
-			for _, rule := range i.windowRules {
+			for _, rule := range i.config.WindowRules {
 				appIdMatched := rule.AppId == nil
 				titleMatched := rule.Title == nil
 				if rule.AppId != nil && window.AppId != nil && rule.AppId.MatchString(*window.AppId) {

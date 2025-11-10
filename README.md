@@ -23,6 +23,8 @@ If you'd like to build from source (or if your platform doesn't have a pre-built
 
 Move the library anywhere permanent, e.g. `~/.config/waybar`.
 
+## Configuration
+
 Add a CFFI module to your Waybar config (and add any niri actions you want to trigger on scroll):
 
 ```jsonc
@@ -31,26 +33,44 @@ Add a CFFI module to your Waybar config (and add any niri actions you want to tr
     "cffi/niri-windows": {
         // path where you placed the .so file
         "module_path": "~/.config/waybar/waybar-niri-windows.so",
-        // add CSS classes to windows based on their App ID/Title (see `niri msg windows`):
-        "rules": [
-            // Go regular expression syntax is supported (see https://pkg.go.dev/regexp/syntax)
-            // .alacritty will be added to all windows with the App ID "Alacritty"
-            { "app-id": "Alacritty", "class": "alacritty" }
-            // .youtube-music will be added to all windows that have "YouTube Music" at the end of their title
-            { "title": "YouTube Music$", "class": "youtube-music" }
-        ],
+        // configure the module's behavior
+        "options": {
+            // set the module mode
+            // "graphical" (default): draw a minimap of windows in the current workspace
+            // "text": draws symbols and a focus indicator for each column (mirrors v1 behavior)
+            "mode": "graphical",
+            // in text mode, customize the symbols used to draw the columns
+            "symbols": {
+                "unfocused": "⋅",
+                "focused": "⊙",
+                "unfocused-floating": "∗",
+                "focused-floating": "⊛"
+            },
+            // in graphical mode, add CSS classes to windows based on their App ID/Title (see `niri msg windows`)
+            "rules": [
+               // Go regular expression syntax is supported (see https://pkg.go.dev/regexp/syntax)
+               // .alacritty will be added to all windows with the App ID "Alacritty"
+               { "app-id": "Alacritty", "class": "alacritty" }
+               // .youtube-music will be added to all windows that have "YouTube Music" at the end of their title
+               { "title": "YouTube Music$", "class": "youtube-music" }
+           ],
+        },
         "actions": {
             // use niri IPC action names to trigger them: https://yalter.github.io/niri/niri_ipc/enum.Action.html
             // any action that has no fields is supported
             "on-scroll-up": "FocusColumnLeft",
             "on-scroll-down": "FocusColumnRight"
-            // don't configure click actions here: they're handled by the module itself
+            // in graphical mode, don't configure click actions here—they're handled by the module itself
         }
    }
 }
 ```
 
-Use any of these selectors in your CSS to style the module:
+### Styling
+
+Use these selectors in your CSS to style the module:
+
+**Graphical mode**:
 
 - `.cffi-niri-windows .tile`
 - `.cffi-niri-windows .tile.focused`
@@ -65,6 +85,18 @@ Use any of these selectors in your CSS to style the module:
 }
 .cffi-niri-windows .tile.focused {
   background-color: rgb(255, 255, 255);
+}
+```
+
+**Text mode** (be sure to specify a font that supports the symbols you're using):
+
+- `.cffi-niri-windows label`
+
+```css
+.cffi-niri-windows label {
+  font-family: Uiua386;
+  font-size: 18px;
+  margin-top: -2px;
 }
 ```
 
