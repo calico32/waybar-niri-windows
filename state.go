@@ -97,9 +97,9 @@ func (s *NiriState) Update(event Event) {
 		delete(s.Windows, event.Id)
 		if s.CurrentWindowId == event.Id {
 			// fmt.Fprintf(os.Stderr, "  Focused window closed: %d\n", event.Id)
-			s.needsRedraw = true
 			s.CurrentWindowId = None
 		}
+		s.needsRedraw = true
 	case *WindowLayoutsChanged:
 		for _, change := range event.Changes {
 			window := s.Windows[change.Id]
