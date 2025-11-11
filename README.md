@@ -3,6 +3,7 @@
 This is a WIP module for [Waybar](https://github.com/Alexays/Waybar) that displays a window minimap for the current [niri](https://github.com/YaLTeR/niri) workspace.
 
 ![Image of the module](screenshot.png)
+![Image of the module in text mode](screenshot-text.png)
 
 > [!IMPORTANT]
 > niri ≥ v25.08 is required (for the window locations in IPC messages to be available).
@@ -39,6 +40,14 @@ Add a CFFI module to your Waybar config (and add any niri actions you want to tr
             // "graphical" (default): draw a minimap of windows in the current workspace
             // "text": draws symbols and a focus indicator for each column (mirrors v1 behavior)
             "mode": "graphical",
+            // in graphical mode, add CSS classes to windows based on their App ID/Title (see `niri msg windows`)
+            "rules": [
+                // Go regular expression syntax is supported (see https://pkg.go.dev/regexp/syntax)
+                // .alacritty will be added to all windows with the App ID "Alacritty"
+                { "app-id": "Alacritty", "class": "alacritty" }
+                // .youtube-music will be added to all windows that have "YouTube Music" at the end of their title
+                { "title": "YouTube Music$", "class": "youtube-music" }
+            ],
             // in text mode, customize the symbols used to draw the columns
             "symbols": {
                 "unfocused": "⋅",
@@ -46,14 +55,6 @@ Add a CFFI module to your Waybar config (and add any niri actions you want to tr
                 "unfocused-floating": "∗",
                 "focused-floating": "⊛"
             },
-            // in graphical mode, add CSS classes to windows based on their App ID/Title (see `niri msg windows`)
-            "rules": [
-               // Go regular expression syntax is supported (see https://pkg.go.dev/regexp/syntax)
-               // .alacritty will be added to all windows with the App ID "Alacritty"
-               { "app-id": "Alacritty", "class": "alacritty" }
-               // .youtube-music will be added to all windows that have "YouTube Music" at the end of their title
-               { "title": "YouTube Music$", "class": "youtube-music" }
-           ],
         },
         "actions": {
             // use niri IPC action names to trigger them: https://yalter.github.io/niri/niri_ipc/enum.Action.html
@@ -81,7 +82,7 @@ Use these selectors in your CSS to style the module:
 
 ```css
 .cffi-niri-windows .tile {
-  background-color: rgba(255, 255, 255, 0.501);
+  background-color: rgba(255, 255, 255, 0.5);
 }
 .cffi-niri-windows .tile.focused {
   background-color: rgb(255, 255, 255);
