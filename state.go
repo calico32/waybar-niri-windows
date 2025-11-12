@@ -57,7 +57,7 @@ func (s *NiriState) Update(event Event) {
 	case *WorkspaceActivated:
 		wk := s.Workspaces[event.Id]
 		for _, workspace := range s.Workspaces {
-			if wk.Output == workspace.Output {
+			if wk.Output != nil && workspace.Output != nil && *wk.Output == *workspace.Output {
 				workspace.IsActive = false
 			}
 		}
