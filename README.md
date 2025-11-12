@@ -76,6 +76,41 @@ Usage: waybar-niri-windows [options]
         Symbol for unfocused columns (default "⋅")
   -U, --unfocused-floating string
         Symbol for unfocused floating windows (default "∗")
+  -o, --output string
+        The output (DP-1, HDMI-1, etc.) that this indicator is for
+```
+
+### Using multiple outputs
+
+By default, the indicator will show the windows for the focused monitor on all bars across all monitors (Waybar doesn't tell us what monitor the current module is on). As a workaround, you can use multiple Waybar configurations, one for each output, and specify the output for each one. Keep in mind that:
+
+- Outputs must be manually specified.
+- Waybar will not display a bar on a monitor that is not specified in the configuration, e.g. if you plug in a monitor after the bar is already running.
+
+```jsonc
+// ~/.config/waybar/config.jsonc
+[
+  {
+    // specify the output that this bar will display on (see `niri msg outputs` for a list of outputs):
+    "output": "eDP-1",
+    // move your existing configuration to a new file, and include it here:
+    "include": ["~/.config/waybar/shared.jsonc"],
+    "custom/niri-windows": {
+      // tell the indicator which output to use:
+      "exec": "./waybar-niri-windows -o eDP-1"
+    }
+  },
+  {
+    // specify the output that this bar will display on (see `niri msg outputs` for a list of outputs):
+    "output": "HDMI-1",
+    // move your existing configuration to a new file, and include it here:
+    "include": ["~/.config/waybar/shared.jsonc"],
+    "custom/niri-windows": {
+      // tell the indicator which output to use:
+      "exec": "./waybar-niri-windows -o HDMI-1"
+    }
+  }
+]
 ```
 
 ## Contributing
