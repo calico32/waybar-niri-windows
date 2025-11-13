@@ -144,9 +144,9 @@ func (s *State) Update(event Event) {
 		delete(s.windows, event.Id)
 		if s.currentWindowId == event.Id {
 			log.Tracef("  focused window closed: %d", event.Id)
-			s.needsRedraw = true
 			s.currentWindowId = None
 		}
+		s.needsRedraw = true
 	case *WindowLayoutsChanged:
 		s.needsRedraw = true
 		for _, change := range event.Changes {
