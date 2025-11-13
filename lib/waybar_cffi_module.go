@@ -1,4 +1,4 @@
-package main
+package lib
 
 import (
 	"fmt"
@@ -29,8 +29,6 @@ static inline void QueueUpdate(void (*queue_update)(wbcffi_module *), wbcffi_mod
 }
 */
 import "C"
-
-func main() {}
 
 var global = state.New()
 

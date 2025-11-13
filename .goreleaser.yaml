@@ -5,7 +5,7 @@ project_name: waybar-niri-windows
 
 builds:
   - env: [CGO_ENABLED=1]
-    dir: './lib'
+    dir: './main'
     buildmode: c-shared
     flags: [-trimpath]
     ldflags: [-s -w]
