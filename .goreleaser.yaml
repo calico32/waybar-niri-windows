@@ -20,9 +20,12 @@ checksum:
 
 changelog:
   sort: asc
+  use: github
+  format: '{{ .SHA }}: {{ .Message }}{{ if not (eq .AuthorUsername "calico32") }} (@{{ .AuthorUsername }}){{ end }}'
   filters:
     exclude:
       - '^docs:'
       - '^ci:'
       - '^test:'
       - '^style:'
+      - '^Merge pull request'
