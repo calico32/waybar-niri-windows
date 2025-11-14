@@ -40,6 +40,8 @@ func (i *Instance) Id() uintptr {
 // see https://github.com/YaLTeR/niri/issues/2381
 const screenHeightScale = 0.95
 
+// New creates a new Instance wired to the provided NIRI state and socket and configured with default graphical-mode symbols.
+// The returned Instance has a unique identifier, stores the provided queueUpdate callback, niriState and niriSocket, and initializes a default Config (GraphicalMode, default Symbols, empty WindowRules).
 func New(niriState *niri.State, niriSocket niri.Socket, queueUpdate func()) *Instance {
 	return &Instance{
 		id:          uintptr(rand.Uint64()),
@@ -346,6 +348,9 @@ func (i *Instance) DoAction(actionName string) {
 	}
 }
 
+// groupBy groups elements of list by the value returned by key and returns a slice of groups.
+// Each group is a slice of items that share the same key value. The order of the groups
+// in the returned slice is unspecified.
 func groupBy[T any, K comparable](list []T, key func(T) K) [][]T {
 	m := make(map[K][]T)
 	for _, item := range list {

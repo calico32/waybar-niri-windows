@@ -56,6 +56,7 @@ func (s *Socket) logMessages() {
 	}()
 }
 
+//  - err: non-nil when initialization fails (for example, missing NIRI_SOCKET or dial errors).
 func Init() (state *State, socket Socket, err error) {
 	socketAddr := os.Getenv("NIRI_SOCKET")
 	if socketAddr == "" {
@@ -85,6 +86,12 @@ func Init() (state *State, socket Socket, err error) {
 	return
 }
 
+// listen starts the EventStream on the provided socket and dispatches incoming events to the given state.
+// 
+// It writes the activation request ("EventStream") to the socket, then reads newline-delimited JSON messages.
+// Empty lines and responses to the EventStream request (NiriEvent.Ok) are ignored. Each received JSON line
+// is unmarshaled into a NiriEvent; the first non-nil field that implements the Event interface is passed to
+// state.Update. The socket is closed when the function returns; read and write errors are logged.
 func listen(socket net.Conn, state *State) {
 	defer socket.Close()
 	if _, err := socket.Write([]byte("\"EventStream\"\n")); err != nil {

@@ -82,30 +82,41 @@ func (l *Logger) Errorf(format string, args ...any) {
 
 var global = Logger{os.Stderr, "niri-windows", LevelInfo}
 
+// SetOutput sets the output writer for the package-level Logger.
+// If w is nil, logging is disabled.
 func SetOutput(w io.Writer) {
 	global.SetOutput(w)
 }
 
+// SetPrefix sets the prefix that is prepended to each log message emitted by the package logger.
 func SetPrefix(prefix string) {
 	global.SetPrefix(prefix)
 }
 
+// Tracef logs a formatted message at trace level using the package-level logger.
+// The message is formatted with the provided format and args and will be written only if the logger's level and output permit it.
 func Tracef(format string, args ...any) {
 	global.Tracef(format, args...)
 }
 
+// Debugf formats a message using fmt.Sprintf semantics and logs it at the debug level using the package-level logger.
+// The message is written only when the package logger's level permits debug output and when an output writer is configured.
 func Debugf(format string, args ...any) {
 	global.Debugf(format, args...)
 }
 
+// Infof formats according to format and arguments and logs the result at the Info level using the package-level logger.
 func Infof(format string, args ...any) {
 	global.Infof(format, args...)
 }
 
+// Warnf formats a warning-level message according to the format and args and writes it using the package-level logger.
+// The formatting follows the conventions of fmt.Printf.
 func Warnf(format string, args ...any) {
 	global.Warnf(format, args...)
 }
 
+// Errorf formats according to format and args and logs the result at Error level using the package-level logger.
 func Errorf(format string, args ...any) {
 	global.Errorf(format, args...)
 }

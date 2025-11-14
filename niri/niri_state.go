@@ -21,7 +21,7 @@ type State struct {
 	needsRedraw bool
 }
 
-// NewNiriState initializes a new NiriState with empty maps for workspaces and windows.
+// NewNiriState creates a new State with initialized maps for workspaces, windows, and update callbacks; current workspace and window IDs are set to None.
 func NewNiriState() *State {
 	return &State{
 		currentWorkspaceId: None,

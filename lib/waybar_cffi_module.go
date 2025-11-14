@@ -32,7 +32,12 @@ import "C"
 
 var global = state.New()
 
-//export wbcffi_init
+// wbcffi_init initializes a Waybar module instance from C and returns a pointer to its instance id or nil on failure.
+// 
+// It ensures a connection to the NIRI service, creates and registers a new module instance, wraps the provided
+// root GTK container and calls the module's Preinit. It attaches a realize handler that will call the module's
+// Init with monitor name and dimensions once the widget is realized, and applies the provided configuration
+// entries. On any initialization or configuration error the new instance is removed and nil is returned.
 func wbcffi_init(init_info *C.wbcffi_init_info_t,
 	config_entries *C.wbcffi_config_entry_t,
 	config_entries_len C.size_t) unsafe.Pointer {
@@ -111,7 +116,8 @@ func wbcffi_init(init_info *C.wbcffi_init_info_t,
 	return unsafe.Pointer(id)
 }
 
-//export wbcffi_deinit
+// wbcffi_deinit deinitializes the module instance identified by instanceId and removes it from the global registry.
+// If no instance exists for the provided id, it logs an error and returns.
 func wbcffi_deinit(instanceId unsafe.Pointer) {
 	log.Tracef("deinit id=%x", uintptr(instanceId))
 	i := global.GetInstance(uintptr(instanceId))
@@ -123,7 +129,8 @@ func wbcffi_deinit(instanceId unsafe.Pointer) {
 	global.RemoveInstance(uintptr(instanceId))
 }
 
-//export wbcffi_update
+// wbcffi_update requests the module instance identified by instanceId to perform an update.
+// If no instance exists for the given id, the call has no effect.
 func wbcffi_update(instanceId unsafe.Pointer) {
 	log.Tracef("update id=%x", uintptr(instanceId))
 	i := global.GetInstance(uintptr(instanceId))
@@ -134,7 +141,8 @@ func wbcffi_update(instanceId unsafe.Pointer) {
 	i.Update()
 }
 
-//export wbcffi_refresh
+// wbcffi_refresh triggers a refresh on the module instance identified by instanceId using the provided signal.
+// If no instance matches the given id, the function logs an error and returns without performing a refresh.
 func wbcffi_refresh(instanceId unsafe.Pointer, signal C.int) {
 	log.Tracef("refresh id=%x signal=%d", uintptr(instanceId), signal)
 	i := global.GetInstance(uintptr(instanceId))
@@ -145,7 +153,8 @@ func wbcffi_refresh(instanceId unsafe.Pointer, signal C.int) {
 	i.Refresh(int(signal))
 }
 
-//export wbcffi_doaction
+// wbcffi_doaction invokes the named action on the module instance identified by instanceId.
+// instanceId is the opaque identifier for a module instance; action_name is a C string naming the action to perform.
 func wbcffi_doaction(instanceId unsafe.Pointer, action_name *C.const_char_t) {
 	log.Tracef("doaction id=%x action_name=%s", uintptr(instanceId), C.GoString(action_name))
 	i := global.GetInstance(uintptr(instanceId))
@@ -156,12 +165,17 @@ func wbcffi_doaction(instanceId unsafe.Pointer, action_name *C.const_char_t) {
 	i.DoAction(C.GoString(action_name))
 }
 
+// wrapContainer creates a gtk.Container whose underlying glib.Object wraps the provided C GtkContainer pointer.
 func wrapContainer(c *C.GtkContainer) *gtk.Container {
 	container := &gtk.Container{}
 	container.Object = &glib.Object{glib.ToGObject(unsafe.Pointer(c))}
 	return container
 }
 
+// getMonitorInfo obtains the monitor plug name and the monitor workarea width and height
+// for the toplevel window that contains w.
+// It returns the monitor plug name, width, height, and a non-nil error if the toplevel
+// widget is not a window or if any underlying GTK/GDK queries fail.
 func getMonitorInfo(w *gtk.Widget) (name string, width, height int, err error) {
 	// alias gtkmm__GtkWindow to GtkWindow so gotk3 can understand it
 	gtk.WrapMap["gtkmm__GtkWindow"] = gtk.WrapMap["GtkWindow"]

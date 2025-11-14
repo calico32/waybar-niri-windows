@@ -29,6 +29,7 @@ type State struct {
 	niriSocket niri.Socket
 }
 
+// New creates a State with its mutex set to a new sync.RWMutex and the instances map initialized to an empty map.
 func New() State {
 	return State{
 		mu:        new(sync.RWMutex),
