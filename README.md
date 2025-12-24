@@ -1,6 +1,6 @@
 # niri-windows module for Waybar
 
-This is a WIP module for [Waybar](https://github.com/Alexays/Waybar) that displays a window minimap for the current [niri](https://github.com/YaLTeR/niri) workspace.
+This is a module for [Waybar](https://github.com/Alexays/Waybar) that displays a window minimap for the current [niri](https://github.com/YaLTeR/niri) workspace.
 
 ![Image of the module](screenshot.png)
 ![Image of the module in text mode](screenshot-text.png)
