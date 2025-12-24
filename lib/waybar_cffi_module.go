@@ -6,7 +6,6 @@ import (
 	"wnw/lib/state"
 	"wnw/log"
 	"wnw/module"
-	"wnw/niri"
 
 	"github.com/gotk3/gotk3/glib"
 	"github.com/gotk3/gotk3/gtk"
@@ -36,22 +35,9 @@ func wbcffi_init(init_info *C.wbcffi_init_info_t,
 	config_entries *C.wbcffi_config_entry_t,
 	config_entries_len C.size_t) unsafe.Pointer {
 
-	global.Locked(func(g *state.State) {
-		if global.GetNiriState() == nil {
-			var err error
-			log.Debugf("connecting to niri socket")
-			niriState, niriSocket, err := niri.Init()
-			if err != nil {
-				log.Errorf("connecting to niri socket: %s", err)
-				return
-			}
-			global.SetNiriState(niriState)
-			global.SetNiriSocket(niriSocket)
-		}
-	})
-
-	if global.GetNiriState() == nil {
-		// niri didn't connect (error already logged above), exit
+	err := global.Init()
+	if err != nil {
+		log.Errorf("error initializing: %s", err)
 		return nil
 	}
 
@@ -66,7 +52,7 @@ func wbcffi_init(init_info *C.wbcffi_init_info_t,
 
 	root := wrapContainer(C.GetRootWidget(init_info.get_root_widget, init_info.obj))
 
-	err := i.Preinit(root)
+	err = i.Preinit(root)
 	if err != nil {
 		global.RemoveInstance(id)
 		log.Errorf("preinit: %s", err)

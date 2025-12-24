@@ -1,27 +1,15 @@
 package state
 
 import (
+	"fmt"
 	"sync"
+	"wnw/log"
 	"wnw/module"
 	"wnw/niri"
 )
 
-type mutex interface {
-	Lock()
-	Unlock()
-	RLock()
-	RUnlock()
-}
-
-type noopMutex struct{}
-
-func (noopMutex) Lock()    {}
-func (noopMutex) Unlock()  {}
-func (noopMutex) RLock()   {}
-func (noopMutex) RUnlock() {}
-
 type State struct {
-	mu     mutex
+	mu     *sync.RWMutex
 	locked bool
 
 	instances  map[uintptr]*module.Instance
@@ -34,6 +22,24 @@ func New() State {
 		mu:        new(sync.RWMutex),
 		instances: make(map[uintptr]*module.Instance),
 	}
+}
+
+func (s *State) Init() error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	if s.niriState == nil {
+		var err error
+		log.Debugf("connecting to niri socket")
+		niriState, niriSocket, err := niri.Init()
+		if err != nil {
+			return fmt.Errorf("connecting to niri socket: %s", err)
+		}
+		s.niriState = niriState
+		s.niriSocket = niriSocket
+	}
+
+	return nil
 }
 
 func (s *State) AddInstance(i *module.Instance) {
@@ -86,17 +92,4 @@ func (s *State) GetNiriSocket() niri.Socket {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 	return s.niriSocket
-}
-
-func (s *State) Locked(f func(*State)) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-
-	// disable locking for the duration of the function
-	mu := s.mu
-	s.mu = noopMutex{}
-	defer func() {
-		s.mu = mu
-	}()
-	f(s)
 }
