@@ -13,6 +13,8 @@ type Config struct {
 	FloatingPosition FloatingPosition `json:"floating-position"`
 	MinimumSize      int              `json:"minimum-size"`
 	Spacing          int              `json:"spacing"`
+	ColumnBorders    int              `json:"column-borders"`
+	FloatingBorders  int              `json:"floating-borders"`
 	Symbols          niri.Symbols     `json:"symbols"`
 	WindowRules      WindowRules      `json:"rules"`
 }

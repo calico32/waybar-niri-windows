@@ -57,6 +57,8 @@ func New(niriState *niri.State, niriSocket niri.Socket, queueUpdate func()) *Ins
 			FloatingPosition: FloatingPositionRight,
 			MinimumSize:      1,
 			Spacing:          1,
+			ColumnBorders:    0,
+			FloatingBorders:  0,
 			Symbols: niri.Symbols{
 				Unfocused:         "⋅",
 				Focused:           "⊙",
@@ -235,7 +237,7 @@ func (i *Instance) Update() {
 		colStyle.AddClass("column")
 		cols.Add(colBox)
 
-		windowHeights, width := i.calculateWindowSizes(column, scale, maxHeight)
+		windowHeights, width := i.calculateWindowSizes(column, scale, maxHeight-i.config.ColumnBorders)
 
 		for idx, window := range column {
 			if idx > len(windowHeights)-1 {
@@ -281,6 +283,9 @@ func (i *Instance) drawFloating(maxWidth int, maxHeight int, floating []*niri.Wi
 		}
 		return
 	}
+
+	maxHeight -= i.config.FloatingBorders
+	maxWidth -= i.config.FloatingBorders
 
 	if i.floatingView == nil {
 		i.floatingView, _ = gtk.BoxNew(gtk.ORIENTATION_VERTICAL, 1)
@@ -367,23 +372,29 @@ func (i *Instance) drawFloating(maxWidth int, maxHeight int, floating []*niri.Wi
 func (i *Instance) getFloatingLayout(window *niri.Window, scale float64, maxWidth int, maxHeight int) (x int, y int, w int, h int) {
 	x = int(window.Layout.TilePosInWorkspaceView.X * scale)
 	y = int(window.Layout.TilePosInWorkspaceView.Y * scale)
-	w = max(i.config.MinimumSize, min(maxWidth-x, int(window.Layout.TileSize.X*scale)))
-	h = max(i.config.MinimumSize, min(maxHeight-y, int(window.Layout.TileSize.Y*scale)))
 
-	for w > maxWidth {
-		w--
+	maxW := min(maxWidth-x, maxWidth)
+	maxH := min(maxHeight-y, maxHeight)
+
+	w = max(i.config.MinimumSize, min(maxW, int(window.Layout.TileSize.X*scale)))
+	h = max(i.config.MinimumSize, min(maxH, int(window.Layout.TileSize.Y*scale)))
+
+	if x < 0 {
+		w += x
+		x = 0
 	}
-	for h > maxHeight {
-		h--
+	if y < 0 {
+		h += y
+		y = 0
 	}
 
-	// move in bounds if needed
-	for x+w > maxWidth {
-		x--
+	if x+w > maxWidth {
+		w = maxWidth - x
 	}
-	for y+h > maxHeight {
-		y--
+	if y+h > maxHeight {
+		h = maxHeight - y
 	}
+
 	return x, y, w, h
 }
 

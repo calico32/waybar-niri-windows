@@ -58,6 +58,9 @@ Add a CFFI module to your Waybar config (and add any niri actions you want to tr
       // set spacing between windows/columns, in pixels (default: 1, minimum: 0)
       // if this value is too large, it will be reduced
       "spacing": 1,
+      // account for borders when calculating window sizes; see note below (default: 0, minimum: 0)
+      "column-borders": 0, // border on .column
+      "floating-borders": 0, // border on .floating
       // add CSS classes to windows based on their App ID/Title (see `niri msg windows`)
       "rules": [
         // Go regular expression syntax is supported (see https://pkg.go.dev/regexp/syntax)
@@ -111,6 +114,8 @@ Use these selectors in your CSS to style the module.
 - Use `:first-child`, `:last-child`, and `:nth-child(n)` to style the first, last, or nth container.
 - Use `:only-child` to style the container when it is the only container.
 
+For example:
+
 ```css
 .cffi-niri-windows .tile {
   background-color: rgba(255, 255, 255, 0.5);
@@ -122,6 +127,28 @@ Use these selectors in your CSS to style the module.
   background-color: rgb(255, 255, 255);
 }
 ```
+
+> [!NOTE]
+>
+> Adding borders to containers may cause them to overflow the bar height. If
+> this happens, set these config options to account for the borders:
+>
+> - Set `column-borders` to the total height (in pixels) of the top and bottom border on `.column`
+> - Set `floating-borders` to the total height (in pixels) of the top and bottom border on `.floating`
+>
+> For example, for the following CSS:
+>
+> ```css
+> .cffi-niri-windows .column {
+>   border: 1px solid rgba(255, 255, 255, 0.85);
+> }
+>
+> .cffi-niri-windows .floating {
+>   border: 2px solid rgba(255, 255, 255, 0.85);
+> }
+> ```
+>
+> Set `column-borders` to `2` and `floating-borders` to `4`.
 
 **Text mode** (be sure to specify a font that supports the symbols you're using):
 
