@@ -277,9 +277,6 @@ func (i *Instance) drawFloating(maxWidth int, maxHeight int, floating []*niri.Wi
 	}
 
 	if i.floatingView == nil {
-		if i.floatingView != nil {
-			i.floatingView.Destroy()
-		}
 		i.floatingView, _ = gtk.BoxNew(gtk.ORIENTATION_VERTICAL, 1)
 		i.floatingView.SetName(floatingViewName)
 		i.floatingView.SetSizeRequest(maxWidth, maxHeight)
