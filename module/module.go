@@ -52,13 +52,16 @@ func New(niriState *niri.State, niriSocket niri.Socket, queueUpdate func()) *Ins
 		niriState:   niriState,
 		niriSocket:  niriSocket,
 		config: Config{
-			Mode:             GraphicalMode,
-			ShowFloating:     ShowFloatingAuto,
-			FloatingPosition: FloatingPositionRight,
-			MinimumSize:      1,
-			Spacing:          1,
-			ColumnBorders:    0,
-			FloatingBorders:  0,
+			Mode:              GraphicalMode,
+			ShowFloating:      ShowFloatingAuto,
+			FloatingPosition:  FloatingPositionRight,
+			MinimumSize:       1,
+			Spacing:           1,
+			ColumnBorders:     0,
+			FloatingBorders:   0,
+			OnTileClick:       "FocusWindow",
+			OnTileMiddleClick: "CloseWindow",
+			OnTileRightClick:  "",
 			Symbols: niri.Symbols{
 				Unfocused:         "⋅",
 				Focused:           "⊙",
@@ -97,7 +100,10 @@ func (i *Instance) Preinit(root *gtk.Container) error {
 	style.AddClass("cffi-niri-windows")
 
 	cssProvider, _ := gtk.CssProviderNew()
-	cssProvider.LoadFromData(defaultStylesheet)
+	err = cssProvider.LoadFromData(defaultStylesheet)
+	if err != nil {
+		return fmt.Errorf("error loading default stylesheet: %w", err)
+	}
 	screen, _ := root.GetScreen()
 	gtk.AddProviderForScreen(screen, cssProvider, gtk.STYLE_PROVIDER_PRIORITY_APPLICATION)
 
@@ -464,16 +470,28 @@ func (i *Instance) connectButtonPress(windowBox gtk.IWidget, window *niri.Window
 		var request map[string]any
 		switch eventButton.Button() {
 		case gdk.BUTTON_PRIMARY:
-			request = map[string]any{
-				"Action": map[string]any{
-					"FocusWindow": map[string]any{"id": window.Id},
-				},
+			if i.config.OnTileClick != "" {
+				request = map[string]any{
+					"Action": map[string]any{
+						i.config.OnTileClick: map[string]any{"id": window.Id},
+					},
+				}
 			}
 		case gdk.BUTTON_MIDDLE:
-			request = map[string]any{
-				"Action": map[string]any{
-					"CloseWindow": map[string]any{"id": window.Id},
-				},
+			if i.config.OnTileMiddleClick != "" {
+				request = map[string]any{
+					"Action": map[string]any{
+						i.config.OnTileMiddleClick: map[string]any{"id": window.Id},
+					},
+				}
+			}
+		case gdk.BUTTON_SECONDARY:
+			if i.config.OnTileRightClick != "" {
+				request = map[string]any{
+					"Action": map[string]any{
+						i.config.OnTileRightClick: map[string]any{"id": window.Id},
+					},
+				}
 			}
 		}
 		if request == nil {

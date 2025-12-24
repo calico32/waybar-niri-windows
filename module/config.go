@@ -8,15 +8,20 @@ import (
 )
 
 type Config struct {
-	Mode             Mode             `json:"mode"`
-	ShowFloating     ShowFloating     `json:"show-floating"`
-	FloatingPosition FloatingPosition `json:"floating-position"`
-	MinimumSize      int              `json:"minimum-size"`
-	Spacing          int              `json:"spacing"`
-	ColumnBorders    int              `json:"column-borders"`
-	FloatingBorders  int              `json:"floating-borders"`
-	Symbols          niri.Symbols     `json:"symbols"`
-	WindowRules      WindowRules      `json:"rules"`
+	Mode Mode `json:"mode"`
+
+	ShowFloating      ShowFloating     `json:"show-floating"`
+	FloatingPosition  FloatingPosition `json:"floating-position"`
+	MinimumSize       int              `json:"minimum-size"`
+	Spacing           int              `json:"spacing"`
+	ColumnBorders     int              `json:"column-borders"`
+	FloatingBorders   int              `json:"floating-borders"`
+	OnTileClick       string           `json:"on-tile-click"`
+	OnTileMiddleClick string           `json:"on-tile-middle-click"`
+	OnTileRightClick  string           `json:"on-tile-right-click"`
+
+	Symbols     niri.Symbols `json:"symbols"`
+	WindowRules WindowRules  `json:"rules"`
 }
 
 type Mode string

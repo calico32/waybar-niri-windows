@@ -61,6 +61,12 @@ Add a CFFI module to your Waybar config (and add any niri actions you want to tr
       // account for borders when calculating window sizes; see note below (default: 0, minimum: 0)
       "column-borders": 0, // border on .column
       "floating-borders": 0, // border on .floating
+      // trigger actions on tile click (see https://yalter.github.io/niri/niri_ipc/enum.Action.html for available actions)
+      // only actions that take a single window ID are supported
+      // set to an empty string to disable
+      "on-tile-click": "FocusWindow", // (default: FocusWindow)
+      "on-tile-middle-click": "CloseWindow", // (default: CloseWindow)
+      "on-tile-right-click": "", // (default: none)
       // add CSS classes to windows based on their App ID/Title (see `niri msg windows`)
       "rules": [
         // Go regular expression syntax is supported (see https://pkg.go.dev/regexp/syntax)
@@ -80,7 +86,7 @@ Add a CFFI module to your Waybar config (and add any niri actions you want to tr
       }
     },
     "actions": {
-      // use niri IPC action names to trigger them: https://yalter.github.io/niri/niri_ipc/enum.Action.html
+      // use niri IPC action names to trigger them (see https://yalter.github.io/niri/niri_ipc/enum.Action.html for available actions)
       // any action that has no fields is supported
       "on-scroll-up": "FocusColumnLeft",
       "on-scroll-down": "FocusColumnRight"
