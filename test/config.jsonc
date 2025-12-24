@@ -1,12 +1,16 @@
 {
     "position": "bottom",
-    "height": 24,
+    "height": 32,
     "spacing": 8,
     "modules-center": ["cffi/niri-windows"],
     "cffi/niri-windows": {
         "module_path": "./waybar-niri-windows-debug.so",
         "options": {
-            "mode": "text",
+            "mode": "graphical",
+            "show-floating": "auto",
+            "floating-position": "right",
+            "minimum-size": 2,
+            "spacing": 1,
             "rules": [
                 { "title": "^~$", "class": "alacritty-3" },
                 { "title": "~", "class": "alacritty-2" },
