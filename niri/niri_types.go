@@ -1,4 +1,4 @@
-package main
+package niri
 
 import (
 	"encoding/json"
@@ -33,6 +33,14 @@ type Window struct {
 	IsUrgent bool `json:"is_urgent"`
 	// Position and size related properties of the Window.
 	Layout WindowLayout `json:"layout"`
+	// Timestamp when the window was most recently focused.
+	//
+	// This timestamp is intended for most-recently-used window switchers, i.e.
+	// Alt-Tab. It only updates after some debounce time so that quick window
+	// switching doesn’t mark intermediate windows as recently focused.
+	//
+	// The timestamp comes from the monotonic clock.
+	FocusTimestamp *Timestamp `json:"focus_timestamp"`
 }
 
 // Position and size related properties of a Window.
@@ -80,6 +88,14 @@ type WindowLayout struct {
 	// windows this includes the distance from the corner of the black backdrop
 	// to the corner of the (centered) window contents.
 	WindowOffsetInTile Vec2[float64] `json:"window_offset_in_tile"`
+}
+
+// A moment in time.
+type Timestamp struct {
+	// Number of whole seconds.
+	Secs uint64 `json:"secs"`
+	// Fractional part of the timestamp in nanoseconds (10⁻⁹ seconds).
+	Nanos uint32 `json:"nanos"`
 }
 
 // A workspace.
@@ -137,11 +153,10 @@ type KeyboardLayouts struct {
 type Numeric interface {
 	~int | ~int8 | ~int16 | ~int32 | ~int64 |
 		~uint | ~uint8 | ~uint16 | ~uint32 | ~uint64 |
-		~float32 | ~float64 |
-		~complex64 | ~complex128
+		~float32 | ~float64
 }
 
-// Vec2 is a 2D vector with generic types for its components. It c.an be
+// Vec2 is a 2D vector with generic types for its components. It can be
 // marshaled to JSON as a 2-element array.
 type Vec2[T Numeric] struct {
 	// X component of the vector.
@@ -174,9 +189,3 @@ func (v *Vec2[T]) First() T { return v.X }
 
 // Second is an alias for [Vec2.Y].
 func (v *Vec2[T]) Second() T { return v.Y }
-
-// Left is an alias for [Vec2.X].
-func (v *Vec2[T]) Left() T { return v.X }
-
-// Right is an alias for [Vec2.Y].
-func (v *Vec2[T]) Right() T { return v.Y }

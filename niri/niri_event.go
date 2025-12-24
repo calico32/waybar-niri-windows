@@ -1,8 +1,7 @@
-package main
+package niri
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 )
 
@@ -35,6 +34,12 @@ type NiriEvent struct {
 	//
 	// All other windows are no longer focused.
 	WindowFocusChanged *WindowFocusChanged
+	// Window focus timestamp changed.
+	//
+	// This event is separate from Event::WindowFocusChanged because the focus
+	// timestamp only updates after some debounce time so that quick window
+	// switching doesn’t mark intermediate windows as recently focused.
+	WindowFocusTimestampChanged *WindowFocusTimestampChanged
 	// Window urgency changed.
 	WindowUrgencyChanged *WindowUrgencyChanged
 
@@ -132,6 +137,18 @@ type WindowFocusChanged struct {
 	Id *uint64 `json:"id"`
 }
 
+// Window focus timestamp changed.
+//
+// This event is separate from Event::WindowFocusChanged because the focus
+// timestamp only updates after some debounce time so that quick window
+// switching doesn’t mark intermediate windows as recently focused.
+type WindowFocusTimestampChanged struct {
+	// Id of the window.
+	Id uint64 `json:"id"`
+	// The new focus timestamp.
+	FocusTimestamp *Timestamp `json:"focus_timestamp"`
+}
+
 // Apply changes to the tile location and/or size of one or more
 // tiles/windows.
 //
@@ -150,9 +167,6 @@ type WindowLayoutChange struct {
 }
 
 func (w *WindowLayoutChange) UnmarshalJSON(data []byte) error {
-	if w == nil {
-		return errors.New("cannot unmarshal into nil pointer")
-	}
 	var arr []json.RawMessage
 	if err := json.Unmarshal(data, &arr); err != nil {
 		return err
@@ -190,7 +204,7 @@ type KeyboardLayoutsChanged struct {
 // The keyboard layout switched.
 type KeyboardLayoutSwitched struct {
 	// Index of the newly active layout.
-	Id uint8 `json:"idx"`
+	Idx uint8 `json:"idx"`
 }
 
 // The overview was opened or closed.
@@ -225,6 +239,7 @@ func (*WindowsChanged) Name() string               { return "WindowsChanged" }
 func (*WindowOpenedOrChanged) Name() string        { return "WindowOpenedOrChanged" }
 func (*WindowClosed) Name() string                 { return "WindowClosed" }
 func (*WindowFocusChanged) Name() string           { return "WindowFocusChanged" }
+func (*WindowFocusTimestampChanged) Name() string  { return "WindowFocusTimestampChanged" }
 func (*WindowLayoutsChanged) Name() string         { return "WindowLayoutsChanged" }
 func (*WindowUrgencyChanged) Name() string         { return "WindowUrgencyChanged" }
 func (*KeyboardLayoutsChanged) Name() string       { return "KeyboardLayoutsChanged" }
