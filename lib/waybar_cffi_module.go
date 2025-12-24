@@ -75,9 +75,8 @@ func wbcffi_init(init_info *C.wbcffi_init_info_t,
 	}
 
 	root.Connect("realize", func(obj *glib.Object) {
-		go func() {
-			// let waybar settle
-			time.Sleep(time.Millisecond * 100)
+		// let waybar settle
+		glib.TimeoutAdd(100, func() {
 			i := global.GetInstance(id)
 			if i == nil {
 				log.Errorf("realize: instance %x not found", id)
@@ -93,7 +92,8 @@ func wbcffi_init(init_info *C.wbcffi_init_info_t,
 
 			log.Debugf("got monitor! id=%x name=%s", id, monitor)
 			i.Init(monitor, screenWidth, screenHeight)
-		}()
+		})
+
 	})
 
 	log.Debugf("init from go! id=%x", id)
