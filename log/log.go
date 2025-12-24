@@ -32,7 +32,7 @@ func (l Level) String() string {
 	case LevelInfo:
 		return "\033[32minfo\033[0m"
 	case LevelWarn:
-		return "\033[1;33mwarn\033[0m"
+		return "\033[1;33mwarning\033[0m"
 	case LevelError:
 		return "\033[1;31merror\033[0m"
 	default:
