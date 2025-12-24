@@ -2,7 +2,6 @@ package lib
 
 import (
 	"fmt"
-	"time"
 	"unsafe"
 	"wnw/lib/state"
 	"wnw/log"
@@ -83,7 +82,7 @@ func wbcffi_init(init_info *C.wbcffi_init_info_t,
 				return
 			}
 
-			root := gtk.Widget{glib.InitiallyUnowned{obj}}
+			root := gtk.Widget{InitiallyUnowned: glib.InitiallyUnowned{Object: obj}}
 			monitor, screenWidth, screenHeight, err := getMonitorInfo(&root)
 			if err != nil {
 				log.Errorf("realize: %s", err)
@@ -158,7 +157,7 @@ func wbcffi_doaction(instanceId unsafe.Pointer, action_name *C.const_char_t) {
 
 func wrapContainer(c *C.GtkContainer) *gtk.Container {
 	container := &gtk.Container{}
-	container.Object = &glib.Object{glib.ToGObject(unsafe.Pointer(c))}
+	container.Object = &glib.Object{GObject: glib.ToGObject(unsafe.Pointer(c))}
 	return container
 }
 
