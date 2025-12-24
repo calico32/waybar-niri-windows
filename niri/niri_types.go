@@ -33,6 +33,14 @@ type Window struct {
 	IsUrgent bool `json:"is_urgent"`
 	// Position and size related properties of the Window.
 	Layout WindowLayout `json:"layout"`
+	// Timestamp when the window was most recently focused.
+	//
+	// This timestamp is intended for most-recently-used window switchers, i.e.
+	// Alt-Tab. It only updates after some debounce time so that quick window
+	// switching doesn’t mark intermediate windows as recently focused.
+	//
+	// The timestamp comes from the monotonic clock.
+	FocusTimestamp *Timestamp `json:"focus_timestamp"`
 }
 
 // Position and size related properties of a Window.
@@ -80,6 +88,14 @@ type WindowLayout struct {
 	// windows this includes the distance from the corner of the black backdrop
 	// to the corner of the (centered) window contents.
 	WindowOffsetInTile Vec2[float64] `json:"window_offset_in_tile"`
+}
+
+// A moment in time.
+type Timestamp struct {
+	// Number of whole seconds.
+	Secs uint64 `json:"secs"`
+	// Fractional part of the timestamp in nanoseconds (10⁻⁹ seconds).
+	Nanos uint32 `json:"nanos"`
 }
 
 // A workspace.

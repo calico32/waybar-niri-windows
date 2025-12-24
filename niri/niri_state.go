@@ -82,8 +82,8 @@ func (s *State) Update(event Event) {
 		s.windows[window.Id] = &window
 		if window.IsFocused && window.Id != s.currentWindowId {
 			log.Tracef("  newly focused window: %d", event.Window.Id)
-			for _, window := range s.windows {
-				window.IsFocused = false
+			for _, w := range s.windows {
+				w.IsFocused = false
 			}
 			window.IsFocused = true
 			s.currentWindowId = window.Id
@@ -140,6 +140,13 @@ func (s *State) Update(event Event) {
 				window.IsFocused = false
 			}
 		}
+	case *WindowFocusTimestampChanged:
+		win, ok := s.windows[event.Id]
+		if !ok {
+			log.Warnf("window %d not found in state", event.Id)
+			return
+		}
+		win.FocusTimestamp = event.FocusTimestamp
 	case *WindowClosed:
 		delete(s.windows, event.Id)
 		if s.currentWindowId == event.Id {
