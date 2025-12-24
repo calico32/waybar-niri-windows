@@ -4,19 +4,24 @@ version: 2
 project_name: waybar-niri-windows
 
 builds:
-  - env: [CGO_ENABLED=0]
-    goos: [linux]
-    goarch: [amd64, arm64]
-    mod_timestamp: '{{ .CommitTimestamp }}'
+  - env: [CGO_ENABLED=1]
+    dir: './main'
+    buildmode: c-shared
     flags: [-trimpath]
     ldflags: [-s -w]
+    goos: [linux]
+    goarch: [amd64]
+    mod_timestamp: '{{ .CommitTimestamp }}'
 
 archives:
   - formats: binary
-    name_template: '{{ .ProjectName }}_{{ .Os }}_{{ .Arch }}'
+    name_template: '{{ .ProjectName }}'
 
 checksum:
   name_template: 'checksums.txt'
+
+release:
+  prerelease: auto
 
 changelog:
   sort: asc
@@ -24,8 +29,9 @@ changelog:
   format: '{{ .SHA }}: {{ .Message }}{{ if not (eq .AuthorUsername "calico32") }} (@{{ .AuthorUsername }}){{ end }}'
   filters:
     exclude:
-      - '^docs:'
       - '^ci:'
-      - '^test:'
+      - '^docs:'
+      - '^refactor:'
       - '^style:'
+      - '^test:'
       - '^Merge pull request'

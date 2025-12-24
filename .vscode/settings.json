@@ -1,0 +1,14 @@
+{
+    "gopls": {
+        "analyses": {
+            // We're avoiding sending pointers to Go memory to C in the lib
+            // module due to the risk of memory corruption. To do this, we send
+            // random instance IDs (just numbers) cast to uintptr and
+            // unsafe.Pointer to the C side, which doesn't do anything with them
+            // anyway. This way, we only let Go code access Go memory and let
+            // the garbage collector be responsible for cleaning up the memory
+            // without using runtime.Pinner/cgo.Handle.
+            "unsafeptr": false
+        }
+    }
+}
