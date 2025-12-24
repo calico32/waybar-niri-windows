@@ -205,7 +205,6 @@ func (i *Instance) Update() {
 
 	if i.allocatedHeight == 0 {
 		i.allocatedHeight = i.box.GetAllocatedHeight()
-		i.box.GetPreferredHeight()
 	}
 
 	maxHeight := i.allocatedHeight

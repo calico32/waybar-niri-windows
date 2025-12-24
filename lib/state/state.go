@@ -9,9 +9,7 @@ import (
 )
 
 type State struct {
-	mu     *sync.RWMutex
-	locked bool
-
+	mu         *sync.RWMutex
 	instances  map[uintptr]*module.Instance
 	niriState  *niri.State
 	niriSocket niri.Socket
