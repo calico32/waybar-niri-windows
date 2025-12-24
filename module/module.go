@@ -16,20 +16,21 @@ import (
 )
 
 type Instance struct {
-	mu            sync.RWMutex
-	id            uintptr
-	queueUpdate   func()
-	box           *gtk.Box
-	label         *gtk.Label // only set in text mode
-	floatingView  *gtk.Box
-	floatingFixed *gtk.Fixed
-	monitor       string
-	ready         bool
-	niriState     *niri.State
-	niriSocket    niri.Socket
-	screenHeight  int
-	screenWidth   int
-	config        Config
+	mu              sync.RWMutex
+	id              uintptr
+	queueUpdate     func()
+	box             *gtk.Box
+	label           *gtk.Label // only set in text mode
+	floatingView    *gtk.Box
+	floatingFixed   *gtk.Fixed
+	monitor         string
+	ready           bool
+	niriState       *niri.State
+	niriSocket      niri.Socket
+	screenHeight    int
+	screenWidth     int
+	allocatedHeight int
+	config          Config
 }
 
 func (i *Instance) Id() uintptr {
@@ -200,7 +201,12 @@ func (i *Instance) Update() {
 		return
 	}
 
-	maxHeight := i.box.GetAllocatedHeight()
+	if i.allocatedHeight == 0 {
+		i.allocatedHeight = i.box.GetAllocatedHeight()
+		i.box.GetPreferredHeight()
+	}
+
+	maxHeight := i.allocatedHeight
 	scale := float64(maxHeight) / float64(i.screenHeight)
 	maxWidth := int(math.Round(float64(i.screenWidth) * scale))
 
