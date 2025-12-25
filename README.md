@@ -10,13 +10,14 @@ This is a module for [Waybar](https://github.com/Alexays/Waybar) that displays a
 
 ## Installation
 
-Download the latest release for your platform from the [releases
-page](https://github.com/calico32/waybar-niri-windows/releases). You can place
-the `.so` anywhere permanent. `~/.config/waybar` is a good place.
+If you're using an amd64 system, you can get a pre-built binary from the
+[releases page](https://github.com/calico32/waybar-niri-windows/releases).
+Download and place `waybar-niri-windows.so` anywhere permanent;
+`~/.config/waybar` is a good place.
 
 ### From source
 
-If you'd like to build from source (or if your platform doesn't have a pre-built binary):
+If you'd like to build from source (or if you're on a different platform):
 
 1. Install GTK 3 + development headers (`apt install libgtk-3-dev`, `pacman -S gtk3`, etc.).
 2. Clone this repository.
@@ -26,7 +27,7 @@ Move the library anywhere permanent, e.g. `~/.config/waybar`.
 
 ## Configuration
 
-Add a CFFI module to your Waybar config (and add any niri actions you want to trigger on scroll):
+Add a CFFI module to your Waybar config:
 
 ```jsonc
 {
@@ -90,7 +91,7 @@ Add a CFFI module to your Waybar config (and add any niri actions you want to tr
       // any action that has no fields is supported
       "on-scroll-up": "FocusColumnLeft",
       "on-scroll-down": "FocusColumnRight"
-      // in graphical mode, don't configure click actions here—they're handled by the module itself
+      // in graphical mode, don't configure click actions here—they're handled by the module above
     }
   }
 }
