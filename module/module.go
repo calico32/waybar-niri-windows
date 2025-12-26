@@ -197,17 +197,14 @@ func (i *Instance) Update() {
 		return
 	}
 
+	tiled, floating := i.niriState.Windows(i.monitor)
+
 	i.box.GetChildren().Foreach(func(child any) {
 		w := child.(*gtk.Widget)
 		if n, err := w.GetName(); err != nil || n != floatingViewName {
 			w.Destroy()
 		}
 	})
-
-	tiled, floating := i.niriState.Windows(i.monitor)
-	if len(tiled) == 0 && len(floating) == 0 {
-		return
-	}
 
 	if i.allocatedHeight == 0 {
 		i.allocatedHeight = i.box.GetAllocatedHeight()
@@ -233,55 +230,65 @@ func (i *Instance) Update() {
 		i.drawFloating(maxWidth, maxHeight, floating, scale)
 	}
 
-	cols, _ := gtk.BoxNew(gtk.ORIENTATION_HORIZONTAL, i.config.Spacing)
-	i.box.Add(cols)
+	var cols *gtk.Box
 
-	for _, column := range columns {
-		colBox, _ := gtk.BoxNew(gtk.ORIENTATION_VERTICAL, i.config.Spacing)
-		colStyle, _ := colBox.GetStyleContext()
-		colStyle.AddClass("column")
-		cols.Add(colBox)
+	if len(tiled) != 0 {
+		cols, _ = gtk.BoxNew(gtk.ORIENTATION_HORIZONTAL, i.config.Spacing)
+		i.box.Add(cols)
 
-		windowHeights, width := i.calculateWindowSizes(column, scale, maxHeight-i.config.ColumnBorders)
+		for _, column := range columns {
+			colBox, _ := gtk.BoxNew(gtk.ORIENTATION_VERTICAL, i.config.Spacing)
+			colStyle, _ := colBox.GetStyleContext()
+			colStyle.AddClass("column")
+			cols.Add(colBox)
 
-		for idx, window := range column {
-			if idx > len(windowHeights)-1 {
-				// we had to cut this window to fit into the bar, stop here
-				break
+			windowHeights, width := i.calculateWindowSizes(column, scale, maxHeight-i.config.ColumnBorders)
+
+			for idx, window := range column {
+				if idx > len(windowHeights)-1 {
+					// we had to cut this window to fit into the bar, stop here
+					break
+				}
+				height := windowHeights[idx]
+
+				windowBox, _ := gtk.EventBoxNew()
+				windowBox.SetSizeRequest(width, height)
+
+				style, _ := windowBox.GetStyleContext()
+				style.AddClass("tile")
+				if window.IsFocused {
+					windowBox.SetStateFlags(gtk.STATE_FLAG_ACTIVE, false)
+					colBox.SetStateFlags(gtk.STATE_FLAG_ACTIVE, false)
+				}
+
+				i.connectRealize(windowBox)
+				i.connectButtonPress(windowBox, window)
+				i.connectTooltip(windowBox, window)
+				i.connectHover(windowBox)
+				i.applyWindowRules(windowBox, window)
+
+				colBox.Add(windowBox)
 			}
-			height := windowHeights[idx]
 
-			windowBox, _ := gtk.EventBoxNew()
-			windowBox.SetSizeRequest(width, height)
-
-			style, _ := windowBox.GetStyleContext()
-			style.AddClass("tile")
-			if window.IsFocused {
-				windowBox.SetStateFlags(gtk.STATE_FLAG_ACTIVE, false)
-				colBox.SetStateFlags(gtk.STATE_FLAG_ACTIVE, false)
-			}
-
-			i.connectRealize(windowBox)
-			i.connectButtonPress(windowBox, window)
-			i.connectTooltip(windowBox, window)
-			i.connectHover(windowBox)
-			i.applyWindowRules(windowBox, window)
-
-			colBox.Add(windowBox)
 		}
-
 	}
 
 	if i.config.FloatingPosition == FloatingPositionRight {
 		i.drawFloating(maxWidth, maxHeight, floating, scale)
-		i.box.ReorderChild(cols, 0)
+		if cols != nil {
+			i.box.ReorderChild(cols, 0)
+		}
 	}
 
 	i.box.ShowAll()
 }
 
+func (i *Instance) shouldShowFloating(floating []*niri.Window) bool {
+	return i.config.ShowFloating == ShowFloatingAlways || (i.config.ShowFloating == ShowFloatingAuto && len(floating) > 0)
+}
+
 func (i *Instance) drawFloating(maxWidth int, maxHeight int, floating []*niri.Window, scale float64) {
-	if i.config.ShowFloating == ShowFloatingNever || (i.config.ShowFloating == ShowFloatingAuto && len(floating) == 0) {
+	if !i.shouldShowFloating(floating) {
 		if i.floatingView != nil {
 			i.floatingView.Destroy()
 			i.floatingView = nil
