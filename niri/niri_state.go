@@ -202,6 +202,7 @@ type Symbols struct {
 	Focused           string `json:"focused"`
 	UnfocusedFloating string `json:"unfocused-floating"`
 	FocusedFloating   string `json:"focused-floating"`
+	Empty             string `json:"empty"`
 }
 
 func (s *State) Text(monitor string, symbols Symbols) string {
@@ -294,6 +295,9 @@ func (s *State) Text(monitor string, symbols Symbols) string {
 		}
 	}
 
+	if output.Len() == 0 {
+		return symbols.Empty
+	}
 	return output.String()
 }
 

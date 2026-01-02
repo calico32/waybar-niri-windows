@@ -78,12 +78,15 @@ Add a CFFI module to your Waybar config:
       ],
 
       // ======= text mode options =======
-      // customize the symbols used to draw the columns
+      // customize the symbols used to draw the columns/windows
       "symbols": {
         "unfocused": "⋅",
         "focused": "⊙",
         "unfocused-floating": "∗",
-        "focused-floating": "⊛"
+        "focused-floating": "⊛",
+        // text to display when there are no windows on the current workspace
+        // if this is an empty string (default), the module will be hidden when there are no windows
+        "empty": ""
       }
     },
     "actions": {

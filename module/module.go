@@ -151,13 +151,6 @@ func (i *Instance) Init(monitor string, screenWidth, screenHeight int) {
 	i.screenHeight = screenHeight
 	i.box.SetSpacing(i.config.Spacing)
 
-	if i.config.Mode == TextMode {
-		label, _ := gtk.LabelNew("")
-		i.box.Add(label)
-		i.box.ShowAll()
-		i.label = label
-	}
-
 	i.ready = true
 	i.mu.Unlock()
 
@@ -184,8 +177,8 @@ func (i *Instance) Notify() {
 }
 
 func (i *Instance) Update() {
-	i.mu.RLock()
-	defer i.mu.RUnlock()
+	i.mu.Lock()
+	defer i.mu.Unlock()
 
 	if !i.ready {
 		return
@@ -193,6 +186,24 @@ func (i *Instance) Update() {
 
 	if i.config.Mode == TextMode {
 		text := i.niriState.Text(i.monitor, i.config.Symbols)
+
+		if text == "" {
+			if i.label != nil {
+				i.label.Destroy()
+				i.label = nil
+			}
+			return
+		}
+		if i.label == nil {
+			var err error
+			i.label, err = gtk.LabelNew("")
+			if err != nil {
+				log.Errorf("error creating label: %s", err)
+				return
+			}
+			i.box.Add(i.label)
+			i.label.Show()
+		}
 		i.label.SetText(text)
 		return
 	}

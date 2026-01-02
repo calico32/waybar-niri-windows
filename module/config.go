@@ -19,9 +19,8 @@ type Config struct {
 	OnTileClick       string           `json:"on-tile-click"`
 	OnTileMiddleClick string           `json:"on-tile-middle-click"`
 	OnTileRightClick  string           `json:"on-tile-right-click"`
-
-	Symbols     niri.Symbols `json:"symbols"`
-	WindowRules WindowRules  `json:"rules"`
+	Symbols           niri.Symbols     `json:"symbols"`
+	WindowRules       WindowRules      `json:"rules"`
 }
 
 type Mode string
