@@ -464,6 +464,19 @@ func (i *Instance) applyWindowRules(windowBox gtk.IWidget, window *niri.Window) 
 		}
 		if appIdMatched && titleMatched {
 			style.AddClass(rule.Class)
+
+			_, h := windowBox.ToWidget().GetSizeRequest()
+			if rule.Icon != "" && h > i.allocatedHeight/2 {
+				lab, err := gtk.LabelNew(rule.Icon)
+				if err != nil {
+					log.Errorf("error creating label: %s", err)
+					return
+				}
+				box, ok := windowBox.(*gtk.EventBox)
+				if ok {
+					box.Add(lab)
+				}
+			}
 			if !rule.Continue {
 				break
 			}
