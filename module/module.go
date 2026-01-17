@@ -453,6 +453,13 @@ func (i *Instance) getFloatingLayout(window *niri.Window, scale float64, maxWidt
 
 func (i *Instance) applyWindowRules(windowBox gtk.IWidget, window *niri.Window) {
 	style, _ := windowBox.ToWidget().GetStyleContext()
+	iconAdded := false
+	if box, ok := windowBox.(*gtk.EventBox); ok {
+		box.GetChildren().Foreach(func(child any) {
+			child.(*gtk.Widget).Destroy()
+		})
+	}
+
 	for _, rule := range i.config.WindowRules {
 		appIdMatched := rule.AppId == nil
 		titleMatched := rule.Title == nil
@@ -466,7 +473,7 @@ func (i *Instance) applyWindowRules(windowBox gtk.IWidget, window *niri.Window) 
 			style.AddClass(rule.Class)
 
 			_, h := windowBox.ToWidget().GetSizeRequest()
-			if rule.Icon != "" && h > i.allocatedHeight/2 {
+			if !iconAdded && rule.Icon != "" && h > i.allocatedHeight/2 {
 				lab, err := gtk.LabelNew(rule.Icon)
 				if err != nil {
 					log.Errorf("error creating label: %s", err)
@@ -475,6 +482,7 @@ func (i *Instance) applyWindowRules(windowBox gtk.IWidget, window *niri.Window) 
 				box, ok := windowBox.(*gtk.EventBox)
 				if ok {
 					box.Add(lab)
+					iconAdded = true
 				}
 			}
 			if !rule.Continue {
