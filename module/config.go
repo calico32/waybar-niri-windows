@@ -96,6 +96,7 @@ type WindowRuleConfig struct {
 	AppId    string `json:"app-id"`
 	Title    string `json:"title"`
 	Class    string `json:"class"`
+	Icon     string `json:"icon"`
 	Continue bool   `json:"continue"`
 }
 
@@ -103,6 +104,7 @@ type WindowRule struct {
 	AppId    *regexp.Regexp
 	Title    *regexp.Regexp
 	Class    string
+	Icon     string
 	Continue bool
 }
 
@@ -129,6 +131,7 @@ func (w *WindowRules) UnmarshalJSON(data []byte) error {
 			}
 		}
 		s[idx].Class = rule.Class
+		s[idx].Icon = rule.Icon
 		s[idx].Continue = rule.Continue
 	}
 	*w = s
