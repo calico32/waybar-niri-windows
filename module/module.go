@@ -86,6 +86,15 @@ const defaultStylesheet = `
 .cffi-niri-windows .tile:active {
 	background-color: rgba(255, 255, 255, 0.600);
 }
+
+.cffi-niri-windows .tile.urgent {
+	background-color: rgba(251, 44, 54, 0.5);
+	border: 1px solid rgba(251, 44, 54, 0.8);
+}
+
+.cffi-niri-windows .tile.urgent:hover {
+	background-color: rgba(251, 44, 54, 0.625);
+}
 `
 
 func (i *Instance) Preinit(root *gtk.Container) error {
@@ -267,6 +276,11 @@ func (i *Instance) Update() {
 
 				style, _ := windowBox.GetStyleContext()
 				style.AddClass("tile")
+				if window.IsUrgent && !style.HasClass("urgent") {
+					style.AddClass("urgent")
+				} else if !window.IsUrgent && style.HasClass("urgent") {
+					style.RemoveClass("urgent")
+				}
 				if window.IsFocused {
 					windowBox.SetStateFlags(gtk.STATE_FLAG_ACTIVE, false)
 					colBox.SetStateFlags(gtk.STATE_FLAG_ACTIVE, false)
@@ -347,6 +361,14 @@ func (i *Instance) drawFloating(maxWidth int, maxHeight int, floating []*niri.Wi
 		x, y, w, h := i.getFloatingLayout(window, scale, maxWidth, maxHeight)
 		i.floatingFixed.Move(windowBox, x, y)
 		windowBox.SetSizeRequest(w, h)
+
+		style, _ := windowBox.GetStyleContext()
+		if window.IsUrgent && !style.HasClass("urgent") {
+			style.AddClass("urgent")
+		} else if !window.IsUrgent && style.HasClass("urgent") {
+			style.RemoveClass("urgent")
+		}
+
 		i.applyWindowRules(windowBox, window)
 		if window.IsFocused {
 			windowBox.SetStateFlags(gtk.STATE_FLAG_ACTIVE, false)
@@ -367,6 +389,9 @@ func (i *Instance) drawFloating(maxWidth int, maxHeight int, floating []*niri.Wi
 
 		style, _ := windowBox.GetStyleContext()
 		style.AddClass("tile")
+		if window.IsUrgent {
+			style.AddClass("urgent")
+		}
 
 		x, y, w, h := i.getFloatingLayout(window, scale, maxWidth, maxHeight)
 		i.floatingFixed.Put(windowBox, x, y)
