@@ -149,6 +149,10 @@ func (i *Instance) ApplyConfig(key, value string) error {
 			log.Warnf("spacing must be at least 0, setting to 0")
 			i.config.Spacing = 0
 		}
+		if i.config.IconMinSize < 0 {
+			log.Warnf("icon-minimum-size must be at least 0, setting to 0")
+			i.config.IconMinSize = 0
+		}
 		log.Debugf("config: %#+v", i.config)
 	case "module_path", "actions":
 		// ignore
@@ -374,7 +378,7 @@ func (i *Instance) drawFloating(maxWidth int, maxHeight int, floating []*niri.Wi
 			style.RemoveClass("urgent")
 		}
 
-		i.applyWindowRules(windowBox, window, false)
+		i.applyWindowRules(windowBox, window, i.config.IconMinSize > 0)
 		if window.IsFocused {
 			windowBox.SetStateFlags(gtk.STATE_FLAG_ACTIVE, false)
 			hasFocused = true
@@ -410,7 +414,7 @@ func (i *Instance) drawFloating(maxWidth int, maxHeight int, floating []*niri.Wi
 		i.connectButtonPress(windowBox, window)
 		i.connectTooltip(windowBox, window)
 		i.connectHover(windowBox)
-		i.applyWindowRules(windowBox, window, false)
+		i.applyWindowRules(windowBox, window, i.config.IconMinSize > 0)
 	}
 
 	if hasFocused {
@@ -472,7 +476,9 @@ func (i *Instance) applyWindowRules(windowBox gtk.IWidget, window *niri.Window, 
 		if appIdMatched && titleMatched {
 			style.AddClass(rule.Class)
 
-			if rule.Icon != "" && !iconAdded && showIcon {
+			w, h := windowBox.ToWidget().GetSizeRequest()
+			meetsMinSizeReq := w >= i.config.IconMinSize && h >= i.config.IconMinSize
+			if rule.Icon != "" && !iconAdded && showIcon && meetsMinSizeReq {
 				lab, err := gtk.LabelNew(rule.Icon)
 				if err != nil {
 					log.Errorf("error creating label: %s", err)
