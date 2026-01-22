@@ -59,6 +59,11 @@ Add a CFFI module to your Waybar config:
       // set spacing between windows/columns, in pixels (default: 1, minimum: 0)
       // if this value is too large, it will be reduced
       "spacing": 1,
+      // set minimum size of windows, in pixels, to draw icons for (default: 0, minimum: 0)
+      // if unset or 0, icons will only be drawn for windows that are the only one in their column
+      // if 1+, icons will be drawn for all windows where w >= icon-minimum-size and h >= icon-minimum-size
+      // icons must be set in the "rules" section below for this to have any effect
+      "icon-minimum-size": 0,
       // account for borders when calculating window sizes; see note below (default: 0, minimum: 0)
       "column-borders": 0, // border on .column
       "floating-borders": 0, // border on .floating
@@ -68,13 +73,21 @@ Add a CFFI module to your Waybar config:
       "on-tile-click": "FocusWindow", // (default: FocusWindow)
       "on-tile-middle-click": "CloseWindow", // (default: CloseWindow)
       "on-tile-right-click": "", // (default: none)
-      // add CSS classes to windows based on their App ID/Title (see `niri msg windows`)
+      // add CSS classes/icons to windows based on their App ID/Title (see `niri msg windows`)
+      // Go regular expression syntax is supported for app-id and title (see https://pkg.go.dev/regexp/syntax)
+      // rules are checked in the order they are defined - first match wins and checking stops
+      // set "continue" to true to also check and apply subsequent rules even if this rule matches
+      // if multiple rules with icons are applied, the first one will be used
       "rules": [
-        // Go regular expression syntax is supported (see https://pkg.go.dev/regexp/syntax)
         // .alacritty will be added to all windows with the App ID "Alacritty"
-        { "app-id": "Alacritty", "class": "alacritty" },
+        //  will be drawn in windows that match
+        { "app-id": "Alacritty", "class": "alacritty", "icon": "" },
+        // .firefox will be added to all windows with the App ID "firefox"
+        // subsequent rules are also checked and applied for firefox windows
+        { "app-id": "firefox", "class": "firefox", "continue": true },
         // .youtube-music will be added to all windows that have "YouTube Music" at the end of their title
-        { "title": "YouTube Music$", "class": "youtube-music" }
+        //  will be drawn in windows that match
+        { "title": "YouTube Music$", "class": "youtube-music", "icon": "" }
       ],
 
       // ======= text mode options =======
