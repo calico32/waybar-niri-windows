@@ -115,6 +115,7 @@ Use these selectors in your CSS to style the module.
 - Add `:hover` (mouse hover) or `:active` (focused) to any of the above selectors to style those states.
 - Use `:first-child`, `:last-child`, and `:nth-child(n)` to style the first, last, or nth window in a column.
 - Use `:only-child` to style the window when it is the only window in a column.
+- Add `.urgent` to style windows marked as urgent.
 
 **Containers:**
 
