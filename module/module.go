@@ -299,7 +299,7 @@ func (i *Instance) Update() {
 				i.connectButtonPress(windowBox, window)
 				i.connectTooltip(windowBox, window)
 				i.connectHover(windowBox)
-				i.applyWindowRules(windowBox, window, len(column) == 1)
+				i.applyWindowRules(windowBox, window, len(column) == 1 || i.config.IconMinSize > 0)
 
 				colBox.Add(windowBox)
 			}
