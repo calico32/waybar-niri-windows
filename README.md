@@ -60,7 +60,7 @@ Add a CFFI module to your Waybar config:
       // if this value is too large, it will be reduced
       "spacing": 1,
       // set minimum size of windows, in pixels, to draw icons for (default: 0, minimum: 0)
-      // if unset or 0, icons will only be drawn for windows that are the only one in their column
+      // if unset or 0, icons will only be drawn for tiled windows that are the only one in their column
       // if 1+, icons will be drawn for all windows where w >= icon-minimum-size and h >= icon-minimum-size
       // icons must be set in the "rules" section below for this to have any effect
       "icon-minimum-size": 0,
@@ -78,6 +78,7 @@ Add a CFFI module to your Waybar config:
       // rules are checked in the order they are defined - first match wins and checking stops
       // set "continue" to true to also check and apply subsequent rules even if this rule matches
       // if multiple rules with icons are applied, the first one will be used
+      // *icons are not drawn for floating windows by default*; set "icon-minimum-size" to enable (see above)
       "rules": [
         // .alacritty will be added to all windows with the App ID "Alacritty"
         //  will be drawn in windows that match
