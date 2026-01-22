@@ -295,7 +295,7 @@ func (i *Instance) Update() {
 				i.connectButtonPress(windowBox, window)
 				i.connectTooltip(windowBox, window)
 				i.connectHover(windowBox)
-				i.applyWindowRules(windowBox, window)
+				i.applyWindowRules(windowBox, window, len(column) == 1)
 
 				colBox.Add(windowBox)
 			}
@@ -374,7 +374,7 @@ func (i *Instance) drawFloating(maxWidth int, maxHeight int, floating []*niri.Wi
 			style.RemoveClass("urgent")
 		}
 
-		i.applyWindowRules(windowBox, window)
+		i.applyWindowRules(windowBox, window, false)
 		if window.IsFocused {
 			windowBox.SetStateFlags(gtk.STATE_FLAG_ACTIVE, false)
 			hasFocused = true
@@ -410,7 +410,7 @@ func (i *Instance) drawFloating(maxWidth int, maxHeight int, floating []*niri.Wi
 		i.connectButtonPress(windowBox, window)
 		i.connectTooltip(windowBox, window)
 		i.connectHover(windowBox)
-		i.applyWindowRules(windowBox, window)
+		i.applyWindowRules(windowBox, window, false)
 	}
 
 	if hasFocused {
@@ -451,7 +451,7 @@ func (i *Instance) getFloatingLayout(window *niri.Window, scale float64, maxWidt
 	return x, y, w, h
 }
 
-func (i *Instance) applyWindowRules(windowBox gtk.IWidget, window *niri.Window) {
+func (i *Instance) applyWindowRules(windowBox gtk.IWidget, window *niri.Window, showIcon bool) {
 	style, _ := windowBox.ToWidget().GetStyleContext()
 	iconAdded := false
 	if box, ok := windowBox.(*gtk.EventBox); ok {
@@ -472,8 +472,7 @@ func (i *Instance) applyWindowRules(windowBox gtk.IWidget, window *niri.Window) 
 		if appIdMatched && titleMatched {
 			style.AddClass(rule.Class)
 
-			_, h := windowBox.ToWidget().GetSizeRequest()
-			if !iconAdded && rule.Icon != "" && h > i.allocatedHeight/2 {
+			if rule.Icon != "" && !iconAdded && showIcon {
 				lab, err := gtk.LabelNew(rule.Icon)
 				if err != nil {
 					log.Errorf("error creating label: %s", err)
