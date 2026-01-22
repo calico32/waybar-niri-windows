@@ -8,6 +8,7 @@ import (
 	"slices"
 	"strconv"
 	"sync"
+	"wnw/jsonc"
 	"wnw/log"
 	"wnw/niri"
 
@@ -123,7 +124,11 @@ func (i *Instance) ApplyConfig(key, value string) error {
 
 	switch key {
 	case "config", "options":
-		err := json.Unmarshal([]byte(value), &i.config)
+		sanitized, err := jsonc.Sanitize([]byte(value))
+		if err != nil {
+			return fmt.Errorf("error unmarshaling config: %w", err)
+		}
+		err = json.Unmarshal(sanitized, &i.config)
 		if err != nil {
 			return fmt.Errorf("error unmarshaling config: %w", err)
 		}
