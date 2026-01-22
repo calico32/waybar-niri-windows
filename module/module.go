@@ -351,7 +351,7 @@ func (i *Instance) drawFloating(maxWidth int, maxHeight int, floating []*niri.Wi
 
 	existingWindows := make(map[string]struct{})
 	i.floatingFixed.GetChildren().Foreach(func(item any) {
-		windowBox := item.(*gtk.Widget)
+		windowBox := &gtk.EventBox{Bin: gtk.Bin{Container: gtk.Container{Widget: *item.(*gtk.Widget)}}}
 		id, _ := windowBox.GetName()
 		var window *niri.Window
 		for _, w := range floating {
@@ -455,14 +455,12 @@ func (i *Instance) getFloatingLayout(window *niri.Window, scale float64, maxWidt
 	return x, y, w, h
 }
 
-func (i *Instance) applyWindowRules(windowBox gtk.IWidget, window *niri.Window, showIcon bool) {
+func (i *Instance) applyWindowRules(windowBox *gtk.EventBox, window *niri.Window, showIcon bool) {
 	style, _ := windowBox.ToWidget().GetStyleContext()
 	iconAdded := false
-	if box, ok := windowBox.(*gtk.EventBox); ok {
-		box.GetChildren().Foreach(func(child any) {
-			child.(*gtk.Widget).Destroy()
-		})
-	}
+	windowBox.GetChildren().Foreach(func(child any) {
+		child.(*gtk.Widget).Destroy()
+	})
 
 	for _, rule := range i.config.WindowRules {
 		appIdMatched := rule.AppId == nil
@@ -484,11 +482,8 @@ func (i *Instance) applyWindowRules(windowBox gtk.IWidget, window *niri.Window, 
 					log.Errorf("error creating label: %s", err)
 					return
 				}
-				box, ok := windowBox.(*gtk.EventBox)
-				if ok {
-					box.Add(lab)
-					iconAdded = true
-				}
+				windowBox.Add(lab)
+				iconAdded = true
 			}
 			if !rule.Continue {
 				break
