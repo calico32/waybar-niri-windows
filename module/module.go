@@ -480,7 +480,7 @@ func (i *Instance) applyWindowRules(windowBox *gtk.EventBox, window *niri.Window
 				lab, err := gtk.LabelNew(rule.Icon)
 				if err != nil {
 					log.Errorf("error creating label: %s", err)
-					return
+					continue
 				}
 				windowBox.Add(lab)
 				iconAdded = true
