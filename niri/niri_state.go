@@ -47,17 +47,20 @@ func (s *State) RemoveOnUpdate(id uint64) {
 
 func (s *State) Update(event Event) {
 	defer func() {
+		// Snapshot the callbacks and release the lock before running them:
+		// callbacks take locks of their own (e.g. the module instance lock),
+		// and a concurrent Deinit holding that lock waits for s.mu, which
+		// deadlocks if the callbacks run while s.mu is still held.
 		s.mu.RLock()
-		defer s.mu.RUnlock()
 		callbacks := make([]func(*State), 0, len(s.onUpdate))
 		for _, f := range s.onUpdate {
 			callbacks = append(callbacks, f)
 		}
-		defer func() {
-			for _, f := range callbacks {
-				f(s)
-			}
-		}()
+		s.mu.RUnlock()
+
+		for _, f := range callbacks {
+			f(s)
+		}
 	}()
 
 	s.mu.Lock()
