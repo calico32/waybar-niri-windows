@@ -188,10 +188,14 @@ func (i *Instance) Init(monitor string, screenWidth, screenHeight int) {
 }
 
 func (i *Instance) Deinit() {
+	// Unregister before taking i.mu: RemoveOnUpdate takes the niri state lock,
+	// while state callbacks take i.mu, so holding i.mu here inverts the lock
+	// order taken by Notify and can deadlock.
+	i.niriState.RemoveOnUpdate(uint64(i.id))
+
 	i.mu.Lock()
 	defer i.mu.Unlock()
 
-	i.niriState.RemoveOnUpdate(uint64(i.id))
 	i.ready = false
 }
 
