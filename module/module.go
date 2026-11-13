@@ -57,6 +57,10 @@ const screenHeightScale = 0.90
 
 const floatingViewName = "floating"
 
+// defaultIconSize is the pixel size used for automatically resolved application
+// icons when "icon-size" is not configured.
+const defaultIconSize = 12
+
 func New(niriState *niri.State, niriSocket niri.Socket, queueUpdate func()) *Instance {
 	return &Instance{
 		id:          uintptr(rand.Uint64()),
@@ -69,6 +73,9 @@ func New(niriState *niri.State, niriSocket niri.Socket, queueUpdate func()) *Ins
 			FloatingPosition:  FloatingPositionRight,
 			MinimumSize:       1,
 			Spacing:           1,
+			IconMinSize:       0,
+			AutoIcons:         false,
+			IconSize:          defaultIconSize,
 			ColumnBorders:     0,
 			FloatingBorders:   0,
 			OnTileClick:       "FocusWindow",
@@ -163,6 +170,12 @@ func (i *Instance) ApplyConfig(key, value string) error {
 		if i.config.IconMinSize < 0 {
 			log.Warnf("icon-minimum-size must be at least 0, setting to 0")
 			i.config.IconMinSize = 0
+		}
+		if i.config.IconSize < 1 {
+			if i.config.IconSize != 0 {
+				log.Warnf("icon-size must be at least 1, setting to %d", defaultIconSize)
+			}
+			i.config.IconSize = defaultIconSize
 		}
 		log.Debugf("config: %#+v", i.config)
 	case "module_path", "actions":
@@ -310,7 +323,7 @@ func (i *Instance) Update() {
 				i.connectButtonPress(windowBox, window)
 				i.connectTooltip(windowBox, window)
 				i.connectHover(windowBox)
-				i.applyWindowRules(windowBox, window, len(column) == 1 || i.config.IconMinSize > 0)
+				i.applyWindowRules(windowBox, window, len(column) == 1 || i.config.IconMinSize > 0 || i.config.AutoIcons)
 
 				colBox.Add(windowBox)
 				runtime.KeepAlive(windowBox)
@@ -398,7 +411,7 @@ func (i *Instance) drawFloating(maxWidth int, maxHeight int, floating []*niri.Wi
 			style.RemoveClass("urgent")
 		}
 
-		i.applyWindowRules(windowBox, window, i.config.IconMinSize > 0)
+		i.applyWindowRules(windowBox, window, i.config.IconMinSize > 0 || i.config.AutoIcons)
 		if window.IsFocused {
 			windowBox.SetStateFlags(gtk.STATE_FLAG_ACTIVE, false)
 			hasFocused = true
@@ -435,7 +448,7 @@ func (i *Instance) drawFloating(maxWidth int, maxHeight int, floating []*niri.Wi
 		i.connectButtonPress(windowBox, window)
 		i.connectTooltip(windowBox, window)
 		i.connectHover(windowBox)
-		i.applyWindowRules(windowBox, window, i.config.IconMinSize > 0)
+		i.applyWindowRules(windowBox, window, i.config.IconMinSize > 0 || i.config.AutoIcons)
 	}
 
 	if hasFocused {
@@ -483,6 +496,21 @@ func (i *Instance) applyWindowRules(windowBox *gtk.EventBox, window *niri.Window
 		safeDestroy(child.(*gtk.Widget))
 	})
 
+	if i.config.AutoIcons {
+		if window.AppId != nil {
+			if class := appClass(*window.AppId); class != "" {
+				style.AddClass(class)
+			}
+		}
+		if showIcon && window.AppId != nil {
+			w, h := windowBox.ToWidget().GetSizeRequest()
+			if icon := i.makeAppIcon(*window.AppId, i.iconPixelSize(w, h)); icon != nil {
+				windowBox.Add(icon)
+				iconAdded = true
+			}
+		}
+	}
+
 	for _, rule := range i.config.WindowRules {
 		appIdMatched := rule.AppId == nil
 		titleMatched := rule.Title == nil
@@ -513,6 +541,19 @@ func (i *Instance) applyWindowRules(windowBox *gtk.EventBox, window *niri.Window
 			style.RemoveClass(rule.Class)
 		}
 	}
+}
+
+// iconPixelSize returns the configured icon size, clamped so that the icon
+// always fits inside the tile.
+func (i *Instance) iconPixelSize(tileWidth, tileHeight int) int {
+	size := i.config.IconSize
+	if size < 1 {
+		size = defaultIconSize
+	}
+	if tileWidth > 0 && tileHeight > 0 {
+		size = min(size, min(tileWidth, tileHeight))
+	}
+	return size
 }
 
 func (*Instance) connectRealize(windowBox gtk.IWidget) {
