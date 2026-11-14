@@ -15,6 +15,8 @@ type Config struct {
 	MinimumSize       int              `json:"minimum-size"`
 	Spacing           int              `json:"spacing"`
 	IconMinSize       int              `json:"icon-minimum-size"`
+	AutoIcons         bool             `json:"auto-icons"`
+	IconSize          int              `json:"icon-size"`
 	ColumnBorders     int              `json:"column-borders"`
 	FloatingBorders   int              `json:"floating-borders"`
 	OnTileClick       string           `json:"on-tile-click"`

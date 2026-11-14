@@ -64,6 +64,16 @@ Add a CFFI module to your Waybar config:
       // if 1+, icons will be drawn for all windows where w >= icon-minimum-size and h >= icon-minimum-size
       // icons must be set in the "rules" section below for this to have any effect
       "icon-minimum-size": 0,
+      // draw the real application icon for each window instead of glyphs from
+      // the "rules" section below (default: false)
+      // the icon is looked up from the window's App ID via the freedesktop
+      // desktop entries and the current icon theme, so no per-application
+      // configuration is needed; "rules" still apply, and a rule glyph is drawn
+      // when no icon can be resolved
+      "auto-icons": false,
+      // size of automatically resolved icons, in pixels (default: 12, minimum: 1)
+      // the icon is clamped so that it always fits inside its tile
+      "icon-size": 12,
       // account for borders when calculating window sizes; see note below (default: 0, minimum: 0)
       "column-borders": 0, // border on .column
       "floating-borders": 0, // border on .floating
@@ -126,6 +136,7 @@ Use these selectors in your CSS to style the module.
 - `.cffi-niri-windows .column .tile`: tiled window
 - `.cffi-niri-windows .floating .tile`: floating window
 - `.cffi-niri-windows .<custom-class>`: any window with a custom class (see `rules` in the config)
+- `.cffi-niri-windows .app-icon`: the automatically resolved application icon (see `auto-icons` in the config)
 - Add `:hover` (mouse hover) or `:active` (focused) to any of the above selectors to style those states.
 - Use `:first-child`, `:last-child`, and `:nth-child(n)` to style the first, last, or nth window in a column.
 - Use `:only-child` to style the window when it is the only window in a column.
